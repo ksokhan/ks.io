@@ -1,2 +1,4 @@
 # ks.io
-Personal site
+
+My personal site.
+`yarn` to install dependencies and `yarn dev` to start dev server.
