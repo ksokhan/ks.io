@@ -226,6 +226,52 @@ a:hover {
   display: none;
 }
 
+/* With the replay button top right, reset sits just left of it. */
+.has-replay .reset {
+  right: 64px;
+}
+
+.replay {
+  position: fixed;
+  top: 22px;
+  right: 20px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 200ms ease, color 200ms ease;
+}
+
+.replay:hover,
+.replay:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  outline: none;
+}
+
+.replay svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Text revealed by skipping the intro (Esc or a tap). */
+.skip-fade {
+  animation: skip-fade 500ms ease both;
+}
+
+@keyframes skip-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Theme toggle: soft until you reach for it. */
 .theme {
   position: fixed;

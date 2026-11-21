@@ -377,10 +377,12 @@
 
   // Empty every text node, then type them back in order: Enter between
   // lines, Enter Enter between sections, one keystroke from label to text.
-  function startIntro() {
+  let introJobs = []
+
+  function startIntro({ replay = false } = {}) {
     const nodes = textNodes(doc)
     doc.classList.add('is-ready')
-    if (!typesOut || reducedMotion || !nodes.length || saved.typed) {
+    if (!typesOut || reducedMotion || !nodes.length || (saved.typed && !replay)) {
       moveTo(restingPlace())
       return
     }
@@ -397,6 +399,7 @@
         n.data = ''
         return { n, text }
       })
+    introJobs = jobs
     moveTo(rangeIn(jobs[0].n, 0))
 
     const typoUsed = new Set()
@@ -433,6 +436,40 @@
       },
     })
     loop()
+  }
+
+  // Skip the rest of the intro: whatever isn't typed yet fades in at once.
+  // Text the visitor has edited in the meantime is left as they made it.
+  function skipIntro() {
+    if (!introRunning) return
+    generation++
+    queue = []
+    for (const { n, text } of introJobs) {
+      if (!n.isConnected || n.data === text) continue
+      // A few wrong characters at the end are a typo in progress: drop them.
+      let k = 0
+      while (k < n.data.length && n.data[k] === text[k]) k++
+      if (n.data.length - k <= 4) n.data = n.data.slice(0, k)
+      if (!text.startsWith(n.data)) continue // the visitor's edit: leave it
+      const rest = document.createElement('span')
+      rest.className = 'skip-fade'
+      rest.textContent = text.slice(n.data.length)
+      n.after(rest)
+    }
+    finishIntro()
+    moveTo(restingPlace())
+    setIdle(true)
+    // Unwrap once faded, so the document is plain text again.
+    setTimeout(() => {
+      doc.querySelectorAll('.skip-fade').forEach((el) => {
+        const parent = el.parentNode
+        el.replaceWith(el.textContent)
+        parent.normalize()
+      })
+      place()
+      if (!reset.hidden) saveDoc()
+    }, 600)
+    if (pendingReaction) loop()
   }
 
   // Edits made mid-intro sit in a half-typed page, so they're saved only
@@ -554,6 +591,42 @@
     saveState({ typed: true, html: null })
     moveTo(restingPlace())
     setIdle(true)
+  })
+
+  // Replay: the original page, typed out again from the top.
+  if (typesOut && !reducedMotion) {
+    const replay = document.createElement('button')
+    replay.type = 'button'
+    replay.className = 'replay'
+    replay.setAttribute('aria-label', 'Replay the typing')
+    replay.title = 'Replay'
+    // Feather icon (MIT): rotate-cw.
+    replay.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'
+    document.body.append(replay)
+    document.body.classList.add('has-replay')
+
+    replay.addEventListener('click', () => {
+      generation++
+      queue = []
+      pendingReaction = null
+      clearTimeout(reactTimer)
+      clearTimeout(saveTimer)
+      doc.innerHTML = pristine
+      reset.hidden = true
+      saveState({ html: null })
+      typed = 0
+      nextKeyAt = 0
+      startIntro({ replay: true })
+    })
+  }
+
+  // Esc, or a tap on a touch screen, skips the rest of the intro.
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') skipIntro()
+  })
+  addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') skipIntro()
   })
 
   // Bring back a previous visit's edits.
