@@ -270,6 +270,7 @@
   // that range one step on: no DOM changes, no reflow, and the line wraps
   // exactly as it will in the end, so words never jump.
   let typoExtras = 0 // typo characters on screen, not yet backspaced
+  let untypedHighlight = null // the Highlight painting untyped text invisible
   function typeStep(range, tokens, { interruptible = true, hidden = null } = {}) {
     let text = typeof tokens === 'string' ? [...tokens] : tokens
     return {
@@ -311,6 +312,9 @@
             range.setStart(range.startContainer, next)
             range.collapse(true)
             hidden.setStart(range.startContainer, next)
+            // Fully revealed: take the empty range out of the highlight
+            // (some browsers, Safari among them, repaint empty ranges badly).
+            if (hidden.collapsed && untypedHighlight) untypedHighlight.delete(hidden)
             typed++
           } else {
             insertAt(range, token)
@@ -430,6 +434,7 @@
     }
 
     const untyped = new Highlight()
+    untypedHighlight = untyped
     CSS.highlights.set('untyped', untyped)
     typoExtras = 0
     const jobs = nodes
