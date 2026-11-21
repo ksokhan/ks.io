@@ -19,6 +19,7 @@
   --text: #efe9e0;
   --muted: #8a857b;
   --rule: #4a4743;
+  --me: #5b8def; /* my caret: a co-editor colour */
   --label-col: 200px;
   /* One line: 1.5x the body size. Every line on the page uses it. */
   --line: 36px;
@@ -33,6 +34,7 @@
     --text: #17181a;
     --muted: #6f7075;
     --rule: #d3d4d7;
+    --me: #2f6fde;
     color-scheme: light;
   }
 }
@@ -42,6 +44,7 @@
   --text: #17181a;
   --muted: #6f7075;
   --rule: #d3d4d7;
+  --me: #2f6fde;
   color-scheme: light;
 }
 
@@ -109,11 +112,6 @@ section + section {
   transition: none; /* hide instantly; only ever fade in */
 }
 
-/* Header text not typed yet: laid out but invisible, so wrapping is final
-   from the start and typing only reveals letters. */
-.untyped {
-  color: transparent;
-}
 
 .items {
   margin: 0;
@@ -191,7 +189,7 @@ a:hover {
   top: 0;
   left: 0;
   width: 2px;
-  background: var(--text);
+  background: var(--me);
   pointer-events: none;
   will-change: transform;
 }
@@ -200,14 +198,23 @@ a:hover {
   display: none;
 }
 
-.me.is-idle {
-  animation: blink 1.06s steps(1) infinite;
+/* Name tag on top of my caret, square at the corner where it meets it. */
+.me-tag {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 2px 4px 1px;
+  border-radius: 3px 3px 3px 0;
+  background: var(--me);
+  color: #fff;
+  font: 400 10px/1 'Inconsolata', ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
+/* Header text not typed yet (live.js): in the page, painted invisible. */
+::highlight(untyped) {
+  color: transparent;
 }
 
 .reset {
@@ -361,8 +368,3 @@ a:hover {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .me.is-idle {
-    animation: none;
-  }
-}

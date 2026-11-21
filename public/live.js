@@ -66,9 +66,13 @@
 
   // --- My caret -------------------------------------------------------------
 
+  // Styled like a co-editor's cursor in Google Docs or Notion: a solid
+  // coloured line with a name tag, so it reads as a second person next to the
+  // visitor's own (native, blinking) caret.
   const caret = document.createElement('div')
   caret.className = 'me is-idle'
   caret.setAttribute('aria-hidden', 'true')
+  caret.innerHTML = '<span class="me-tag">K</span>'
   document.body.append(caret)
 
 
@@ -114,17 +118,19 @@
     }
   }
 
-  function place() {
+  function place(glide = false) {
     if (!doc.contains(me.startContainer)) {
       caret.hidden = true
       return
     }
     const { x, y, h } = rectAt(me)
-    placeAt(x, y, h)
+    placeAt(x, y, h, glide)
   }
 
-  function placeAt(x, y, h) {
+  // glide: ease over to the new spot (stepping aside) instead of jumping.
+  function placeAt(x, y, h, glide = false) {
     caret.hidden = false
+    caret.style.transition = glide && !reducedMotion ? 'transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1)' : 'none'
     caret.style.height = `${h}px`
     caret.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
   }
@@ -143,9 +149,9 @@
     caret.classList.toggle('is-idle', idle)
   }
 
-  function moveTo(range) {
+  function moveTo(range, { glide = false } = {}) {
     me = range
-    place()
+    place(glide)
   }
 
   // Text nodes that are content, in document order. Whitespace-only nodes
@@ -261,10 +267,13 @@
 
   // tokens: an array of characters, BACKSPACE, { pause: ms }, { extra: char }
   // (a character that isn't part of the text, i.e. a typo), or a function (a
-  // cue). With `untyped`, the rest of the text is already laid out, invisible,
-  // in that element; each correct character typed is taken from it, so the
-  // line wraps exactly as it will in the end and words never jump.
-  function typeStep(range, tokens, { interruptible = true, untyped = null } = {}) {
+  // cue). With `hidden`, the text is already in the page and `hidden` is a
+  // Range over the part not typed yet, painted transparent with the CSS Custom
+  // Highlight API. Typing a character just moves the caret and the start of
+  // that range one step on: no DOM changes, no reflow, and the line wraps
+  // exactly as it will in the end, so words never jump.
+  let typoExtras = 0 // typo characters on screen, not yet backspaced
+  function typeStep(range, tokens, { interruptible = true, hidden = null } = {}) {
     let text = typeof tokens === 'string' ? [...tokens] : tokens
     return {
       async run(gen) {
@@ -289,15 +298,26 @@
           }
           setIdle(false)
           moveTo(range)
-          if (token === BACKSPACE) backspaceAt(range)
-          else if (typeof token === 'object') insertAt(range, token.extra)
-          else {
+          if (token === BACKSPACE) {
+            backspaceAt(range)
+            if (typoExtras) typoExtras--
+          } else if (typeof token === 'object') {
+            insertAt(range, token.extra)
+            if (hidden) {
+              // Text inserted at the hidden range's start lands inside it;
+              // move the start past the typo so it shows.
+              hidden.setStart(range.startContainer, range.startOffset)
+              typoExtras++
+            }
+          } else if (hidden && range.startContainer.nodeType === Node.TEXT_NODE) {
+            const next = range.startOffset + token.length
+            range.setStart(range.startContainer, next)
+            range.collapse(true)
+            hidden.setStart(range.startContainer, next)
+            typed++
+          } else {
             insertAt(range, token)
             typed++
-            if (untyped && untyped.isConnected && untyped.textContent.startsWith(token)) {
-              untyped.textContent = untyped.textContent.slice(token.length)
-              if (!untyped.textContent) untyped.remove()
-            }
           }
           place()
           await keyBeat(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
@@ -403,20 +423,30 @@
     const header = sectionOf(nodes[0])
     veiled = [...doc.querySelectorAll('.label, .items > *')].filter((el) => !header.contains(el) || el.classList.contains('label'))
     veiled.forEach((el) => el.classList.add('is-hidden'))
+
+    // No Highlight API (older browsers): show the header, fade in the rest.
+    if (!window.Highlight || !CSS.highlights) {
+      doc.classList.add('is-ready')
+      moveTo(restingPlace())
+      finishIntro()
+      return
+    }
+
+    const untyped = new Highlight()
+    CSS.highlights.set('untyped', untyped)
+    typoExtras = 0
     const jobs = nodes
       .filter((n) => header.contains(n) && !n.parentElement.closest('.label'))
       .map((n) => {
-        const text = n.data.replace(/\s+/g, ' ')
-        const untyped = document.createElement('span')
-        untyped.className = 'untyped'
-        untyped.textContent = text
-        n.data = ''
-        n.after(untyped)
-        return { n, text, untyped }
+        n.data = n.data.replace(/\s+/g, ' ')
+        const hidden = document.createRange()
+        hidden.selectNodeContents(n)
+        untyped.add(hidden)
+        return { n, text: n.data, hidden }
       })
     introJobs = jobs
-    // Everything is hidden or laid out invisibly now, so the page can show
-    // without a flash of the finished text.
+    // Everything is hidden now, so the page can show without a flash of the
+    // finished text.
     doc.classList.add('is-ready')
     moveTo(rangeIn(jobs[0].n, 0))
 
@@ -424,7 +454,7 @@
     // The opening line goes at WPM_START; the speed-up starts right after it.
     const openingChars = jobs[0].text.length
     const cued = new Set()
-    jobs.forEach(({ n, text, untyped }, i) => {
+    jobs.forEach(({ n, text, hidden }, i) => {
       const typoEl = n.parentElement.closest('[data-typo]')
       let tokens = [...text]
       if (typoEl && !typoUsed.has(typoEl) && text.includes(typoEl.dataset.typo.split('|')[0])) {
@@ -438,7 +468,7 @@
         const half = Math.ceil(tokens.length / 2)
         tokens.splice(half, 0, () => label.classList.remove('is-hidden'))
       }
-      queue.push(typeStep(rangeIn(n, 0), tokens, { untyped }))
+      queue.push(typeStep(rangeIn(n, 0), tokens, { hidden }))
 
       const next = jobs[i + 1]
       if (!next) return
@@ -484,16 +514,19 @@
     if (!introRunning) return
     generation++
     queue = []
-    for (const { n, text, untyped } of introJobs) {
-      if (!untyped.isConnected) continue
-      // A few wrong characters at the end are a typo in progress: drop them.
-      if (n.isConnected) {
-        let k = 0
-        while (k < n.data.length && n.data[k] === text[k]) k++
-        if (n.data.length - k <= 4) n.data = n.data.slice(0, k)
-      }
-      untyped.className = 'skip-fade' // the rest of the line fades in
+    // A typo in progress: take its letters back out.
+    if (typoExtras && me.startContainer.nodeType === Node.TEXT_NODE && me.startOffset >= typoExtras) {
+      me.startContainer.deleteData(me.startOffset - typoExtras, typoExtras)
     }
+    typoExtras = 0
+    // The untyped rest of each line fades in (wrapped briefly to animate it).
+    for (const { hidden } of introJobs) {
+      if (hidden.collapsed || !doc.contains(hidden.startContainer)) continue
+      const rest = document.createElement('span')
+      rest.className = 'skip-fade'
+      hidden.surroundContents(rest)
+    }
+    if (window.CSS && CSS.highlights) CSS.highlights.delete('untyped')
     finishIntro()
     moveTo(restingPlace())
     setIdle(true)
@@ -517,6 +550,7 @@
 
   function finishIntro() {
     introRunning = false
+    if (window.CSS && CSS.highlights) CSS.highlights.delete('untyped')
     revealRest()
     saveState({ typed: true })
     if (!reset.hidden) saveDoc()
@@ -673,9 +707,33 @@
     reset.hidden = false
   }
 
+  // --- Making room ----------------------------------------------------------
+  // When the visitor's caret lands on the line mine is resting on, mine steps
+  // aside to the end of a neighbouring line, like a co-editor making room.
+
+  function stepAside() {
+    if (running || introRunning || caret.hidden) return
+    const sel = getSelection()
+    if (!sel.rangeCount || !doc.contains(sel.anchorNode)) return
+    const theirs = rectAt(sel.getRangeAt(0))
+    const mine = rectAt(me)
+    if (Math.abs(theirs.y - mine.y) > mine.h * 0.6) return
+
+    const lines = [...doc.querySelectorAll('.items > *')].filter((el) => el.textContent.trim())
+    const anchor = sel.anchorNode.nodeType === Node.ELEMENT_NODE ? sel.anchorNode : sel.anchorNode.parentElement
+    const at = lines.findIndex((el) => el.contains(anchor))
+    if (at < 0) return
+    // Prefer the line below theirs; at the bottom of the page, the one above.
+    const spot = lines[at + 1] || lines[at - 1]
+    if (spot) moveTo(rangeAtEnd(spot), { glide: true })
+  }
+
+  document.addEventListener('selectionchange', () => requestAnimationFrame(stepAside))
+
   // --- Events ---------------------------------------------------------------
 
   doc.addEventListener('input', (e) => {
+    skipIntro() // no-op unless the intro is running
     lastInput = Date.now()
     lastEditKind = e.inputType && e.inputType.startsWith('delete') ? 'delete' : 'insert'
     lastEditBlock = editedBlock() || lastEditBlock
