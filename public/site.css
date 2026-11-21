@@ -177,29 +177,10 @@ a:hover {
   background: var(--text);
   pointer-events: none;
   will-change: transform;
-  z-index: 1;
 }
 
 .me[hidden] {
   display: none;
-}
-
-/* Fades the last few typed characters in behind my caret (see live.js).
-   Solid for the stretch nearest the caret, so a new letter appears fully
-   hidden and only eases in once the caret has moved on. */
-.me-trail {
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: linear-gradient(to right, transparent, var(--bg) 60%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 260ms ease;
-}
-
-.me-trail.is-active {
-  opacity: 1;
-  transition: none; /* cover instantly; only ever fade out */
 }
 
 .me.is-idle {

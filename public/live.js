@@ -71,20 +71,6 @@
   caret.setAttribute('aria-hidden', 'true')
   document.body.append(caret)
 
-  // A soft fade trailing the caret: a gradient to the page colour over the
-  // last few characters, so new text eases in instead of popping. It's an
-  // overlay, so the document's text is never wrapped or restyled.
-  // Two of them: on a jump (new line) the old one fades out where it was, so
-  // the end of the previous line eases in too.
-  const trails = [0, 1].map(() => {
-    const el = document.createElement('div')
-    el.className = 'me-trail'
-    el.setAttribute('aria-hidden', 'true')
-    document.body.append(el)
-    return el
-  })
-  let trail = trails[0]
-  let last = null // previous caret position, to decide whether to glide
 
   // A live Range: the DOM keeps it valid as the visitor edits around it.
   let me = document.createRange()
@@ -138,28 +124,9 @@
   }
 
   function placeAt(x, y, h) {
-    const px = x + scrollX - 1
-    const py = y + scrollY
-    // Moving on along the same line keeps the trail; anything else (a new
-    // line, a backspace, a jump) hands over to the other trail, leaving the
-    // old one to fade out where it was.
-    const onward = last && Math.abs(py - last.py) < 2 && px >= last.px && px - last.px < h * 1.5
-    last = { px, py }
-
     caret.hidden = false
     caret.style.height = `${h}px`
-    caret.style.transform = `translate(${px}px, ${py}px)`
-
-    if (!onward && trail.classList.contains('is-active')) {
-      trail.classList.remove('is-active')
-      trail = trail === trails[0] ? trails[1] : trails[0]
-      trail.classList.add('is-active')
-    }
-    const w = Math.round(h * 2)
-    trail.style.width = `${w}px`
-    // Taller than the glyphs so link underlines are covered too.
-    trail.style.height = `${Math.round(h * 1.45)}px`
-    trail.style.transform = `translate(${px - w}px, ${py - Math.round(h * 0.05)}px)`
+    caret.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
   }
 
   let placeQueued = false
@@ -174,7 +141,6 @@
 
   function setIdle(idle) {
     caret.classList.toggle('is-idle', idle)
-    trail.classList.toggle('is-active', !idle)
   }
 
   function moveTo(range) {
@@ -265,17 +231,32 @@
   let typed = 0 // characters typed so far
   let rampStart = -Infinity // typed count where the speed-up begins
 
+  // 0 before the speed-up, 1 once it reaches WPM_END.
+  const ramp = () => Math.min(1, Math.max(0, (typed - rampStart) / RAMP_CHARS))
+
   function msPerChar() {
-    const t = Math.min(1, Math.max(0, (typed - rampStart) / RAMP_CHARS))
-    const wpm = WPM_START + (WPM_END - WPM_START) * t
+    const wpm = WPM_START + (WPM_END - WPM_START) * ramp()
     return 60000 / (wpm * 5)
   }
 
-  // Uneven but averaging the current WPM, with a beat after sentences.
+  // A human-ish rhythm at first (uneven keys, a beat after sentences) that
+  // evens out as the speed ramps up, until every key lands on the same beat.
   function charDelay(ch, next) {
-    let ms = msPerChar() * (0.75 + Math.random() * 0.5)
-    if (/[.!?]/.test(ch) && next === ' ') ms += 120
+    const loose = 1 - ramp()
+    let ms = msPerChar() * (1 + (Math.random() - 0.5) * 0.5 * loose)
+    if (/[.!?]/.test(ch) && next === ' ') ms += 120 * loose
     return ms
+  }
+
+  // Keys are timed against a running schedule rather than "N ms after the
+  // last key", so late timers don't add up into a wobbly rhythm. After a
+  // real pause the schedule starts again from now.
+  let nextKeyAt = 0
+  function keyBeat(ms) {
+    const now = performance.now()
+    const from = now - nextKeyAt > 100 ? now : nextKeyAt
+    nextKeyAt = from + ms
+    return sleep(nextKeyAt - now)
   }
 
   // tokens: an array of characters, BACKSPACE, or { pause: ms }.
@@ -306,20 +287,12 @@
             typed++
           }
           place()
-          await sleep(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
+          await keyBeat(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
         }
         return true
       },
     }
   }
-
-  const waitStep = (ms) => ({
-    async run() {
-      setIdle(true)
-      await sleep(ms)
-      return true
-    },
-  })
 
   // Line breaks as keystrokes: each press takes a keystroke's time. With
   // two presses (Enter, Enter) the caret first drops to the blank line below.
@@ -338,7 +311,7 @@
           } else {
             moveTo(to)
           }
-          await sleep(charDelay(' ', 'x'))
+          await keyBeat(charDelay(' ', 'x'))
         }
         return true
       },
@@ -415,7 +388,6 @@
       return { n, text }
     })
     moveTo(rangeIn(jobs[0].n, 0))
-    queue.push(waitStep(600))
 
     const typoUsed = new Set()
     // The opening line (label and first line of text) goes at WPM_START;
