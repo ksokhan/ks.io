@@ -259,8 +259,12 @@
     return sleep(nextKeyAt - now)
   }
 
-  // tokens: an array of characters, BACKSPACE, or { pause: ms }.
-  function typeStep(range, tokens, { interruptible = true } = {}) {
+  // tokens: an array of characters, BACKSPACE, { pause: ms }, { extra: char }
+  // (a character that isn't part of the text, i.e. a typo), or a function (a
+  // cue). With `untyped`, the rest of the text is already laid out, invisible,
+  // in that element; each correct character typed is taken from it, so the
+  // line wraps exactly as it will in the end and words never jump.
+  function typeStep(range, tokens, { interruptible = true, untyped = null } = {}) {
     let text = typeof tokens === 'string' ? [...tokens] : tokens
     return {
       async run(gen) {
@@ -278,7 +282,7 @@
             token() // a cue placed mid-text, e.g. fading in a label
             continue
           }
-          if (typeof token === 'object') {
+          if (typeof token === 'object' && 'pause' in token) {
             setIdle(true)
             await sleep(token.pause)
             continue
@@ -286,9 +290,14 @@
           setIdle(false)
           moveTo(range)
           if (token === BACKSPACE) backspaceAt(range)
+          else if (typeof token === 'object') insertAt(range, token.extra)
           else {
             insertAt(range, token)
             typed++
+            if (untyped && untyped.isConnected && untyped.textContent.startsWith(token)) {
+              untyped.textContent = untyped.textContent.slice(token.length)
+              if (!untyped.textContent) untyped.remove()
+            }
           }
           place()
           await keyBeat(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
@@ -358,7 +367,7 @@
     const cut = at + prefix.length
     return [
       ...text.slice(0, cut),
-      ...wrong,
+      ...[...wrong].map((extra) => ({ extra })),
       { pause: 300 },
       ...BACKSPACE.repeat(wrong.length),
       { pause: 80 },
@@ -381,8 +390,8 @@
 
   function startIntro({ replay = false } = {}) {
     const nodes = textNodes(doc)
-    doc.classList.add('is-ready')
     if (!typesOut || reducedMotion || !nodes.length || (saved.typed && !replay)) {
+      doc.classList.add('is-ready')
       moveTo(restingPlace())
       return
     }
@@ -398,17 +407,24 @@
       .filter((n) => header.contains(n) && !n.parentElement.closest('.label'))
       .map((n) => {
         const text = n.data.replace(/\s+/g, ' ')
+        const untyped = document.createElement('span')
+        untyped.className = 'untyped'
+        untyped.textContent = text
         n.data = ''
-        return { n, text }
+        n.after(untyped)
+        return { n, text, untyped }
       })
     introJobs = jobs
+    // Everything is hidden or laid out invisibly now, so the page can show
+    // without a flash of the finished text.
+    doc.classList.add('is-ready')
     moveTo(rangeIn(jobs[0].n, 0))
 
     const typoUsed = new Set()
     // The opening line goes at WPM_START; the speed-up starts right after it.
     const openingChars = jobs[0].text.length
     const cued = new Set()
-    jobs.forEach(({ n, text }, i) => {
+    jobs.forEach(({ n, text, untyped }, i) => {
       const typoEl = n.parentElement.closest('[data-typo]')
       let tokens = [...text]
       if (typoEl && !typoUsed.has(typoEl) && text.includes(typoEl.dataset.typo.split('|')[0])) {
@@ -422,7 +438,7 @@
         const half = Math.ceil(tokens.length / 2)
         tokens.splice(half, 0, () => label.classList.remove('is-hidden'))
       }
-      queue.push(typeStep(rangeIn(n, 0), tokens))
+      queue.push(typeStep(rangeIn(n, 0), tokens, { untyped }))
 
       const next = jobs[i + 1]
       if (!next) return
@@ -468,17 +484,15 @@
     if (!introRunning) return
     generation++
     queue = []
-    for (const { n, text } of introJobs) {
-      if (!n.isConnected || n.data === text) continue
+    for (const { n, text, untyped } of introJobs) {
+      if (!untyped.isConnected) continue
       // A few wrong characters at the end are a typo in progress: drop them.
-      let k = 0
-      while (k < n.data.length && n.data[k] === text[k]) k++
-      if (n.data.length - k <= 4) n.data = n.data.slice(0, k)
-      if (!text.startsWith(n.data)) continue // the visitor's edit: leave it
-      const rest = document.createElement('span')
-      rest.className = 'skip-fade'
-      rest.textContent = text.slice(n.data.length)
-      n.after(rest)
+      if (n.isConnected) {
+        let k = 0
+        while (k < n.data.length && n.data[k] === text[k]) k++
+        if (n.data.length - k <= 4) n.data = n.data.slice(0, k)
+      }
+      untyped.className = 'skip-fade' // the rest of the line fades in
     }
     finishIntro()
     moveTo(restingPlace())

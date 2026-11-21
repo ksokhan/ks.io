@@ -106,6 +106,13 @@ section + section {
 
 .doc .is-hidden {
   opacity: 0;
+  transition: none; /* hide instantly; only ever fade in */
+}
+
+/* Header text not typed yet: laid out but invisible, so wrapping is final
+   from the start and typing only reveals letters. */
+.untyped {
+  color: transparent;
 }
 
 .items {
