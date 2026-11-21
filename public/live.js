@@ -1,7 +1,7 @@
 // The page is one contenteditable document. "Me" is a custom caret that
-// types the whole page out on load (fumbling one word early on). When a
-// visitor edits, my caret waits for them to pause, types a cheeky line next to
-// their edit, then carries on with whatever it was doing.
+// types the page out on load (pages with data-typeout), fumbling one word
+// early on. When a visitor edits, my caret waits for them to pause, types a
+// cheeky line next to their edit, then carries on with whatever it was doing.
 ;(() => {
   const doc = document.querySelector('.doc')
   if (!doc) return
@@ -10,8 +10,8 @@
 
   // Typing speed (a "word" is 5 characters): the first section at WPM_START,
   // then easing up to WPM_END over the next RAMP_CHARS characters.
-  const WPM_START = 120
-  const WPM_END = 160
+  const WPM_START = 160
+  const WPM_END = 200
   const RAMP_CHARS = 200
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
@@ -323,13 +323,19 @@
   const blockOf = (n) => n.parentElement.closest('li, p, .label')
   const sectionOf = (n) => n.parentElement.closest('section') || doc
 
+  // Pages opt in to being typed out with data-typeout (the homepage). On other
+  // pages my caret just rests at the end of the opening paragraph.
+  const typesOut = doc.hasAttribute('data-typeout')
+  const restingPlace = () =>
+    rangeAtEnd(typesOut ? doc : doc.querySelector('.items') || doc)
+
   // Empty every text node, then type them back in order: Enter between
   // lines, Enter Enter between sections, one keystroke from label to text.
   function startIntro() {
     const nodes = textNodes(doc)
     doc.classList.add('is-ready')
-    if (reducedMotion || !nodes.length) {
-      moveTo(rangeAtEnd(doc))
+    if (!typesOut || reducedMotion || !nodes.length) {
+      moveTo(restingPlace())
       return
     }
 
@@ -455,7 +461,7 @@
     clearTimeout(reactTimer)
     doc.innerHTML = pristine
     reset.hidden = true
-    moveTo(rangeAtEnd(doc))
+    moveTo(restingPlace())
     setIdle(true)
   })
 
