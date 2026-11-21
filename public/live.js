@@ -8,7 +8,11 @@
 
   // --- Tunables -------------------------------------------------------------
 
-  const WPM = 120 // typing speed (a "word" is 5 characters)
+  // Typing speed (a "word" is 5 characters): the first section at WPM_START,
+  // then easing up to WPM_END over the next RAMP_CHARS characters.
+  const WPM_START = 120
+  const WPM_END = 160
+  const RAMP_CHARS = 200
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
   const REACT_COOLDOWN_MS = 5000
@@ -80,8 +84,12 @@
       caret.hidden = true
       return
     }
-    caret.hidden = false
     const { x, y, h } = rectAt(me)
+    placeAt(x, y, h)
+  }
+
+  function placeAt(x, y, h) {
+    caret.hidden = false
     caret.style.height = `${h}px`
     caret.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
   }
@@ -185,11 +193,18 @@
   }
 
   const BACKSPACE = '\b'
-  const MS_PER_CHAR = 60000 / (WPM * 5)
+  let typed = 0 // characters typed so far
+  let rampStart = -Infinity // typed count where the speed-up begins
 
-  // Uneven but averaging WPM, with a beat after sentence punctuation.
+  function msPerChar() {
+    const t = Math.min(1, Math.max(0, (typed - rampStart) / RAMP_CHARS))
+    const wpm = WPM_START + (WPM_END - WPM_START) * t
+    return 60000 / (wpm * 5)
+  }
+
+  // Uneven but averaging the current WPM, with a beat after sentences.
   function charDelay(ch, next) {
-    let ms = MS_PER_CHAR * (0.5 + Math.random())
+    let ms = msPerChar() * (0.5 + Math.random())
     if (/[.!?]/.test(ch) && next === ' ') ms += 160
     return ms
   }
@@ -217,9 +232,12 @@
           setIdle(false)
           moveTo(range)
           if (token === BACKSPACE) backspaceAt(range)
-          else insertAt(range, token)
+          else {
+            insertAt(range, token)
+            typed++
+          }
           place()
-          await sleep(token === BACKSPACE ? MS_PER_CHAR * 0.8 : charDelay(token, text[0]))
+          await sleep(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
         }
         return true
       },
@@ -233,6 +251,30 @@
       return true
     },
   })
+
+  // Line breaks as keystrokes: each press takes a keystroke's time. With
+  // two presses (Enter, Enter) the caret first drops to the blank line below.
+  function keysStep(presses, to) {
+    return {
+      async run(gen) {
+        for (let i = 0; i < presses; i++) {
+          if (gen !== generation) return true
+          await calm()
+          setIdle(false)
+          if (i < presses - 1) {
+            const here = rectAt(me)
+            const target = rectAt(to)
+            const line = parseFloat(getComputedStyle(doc).lineHeight) || here.h * 1.45
+            placeAt(target.x, here.y + line, here.h)
+          } else {
+            moveTo(to)
+          }
+          await sleep(charDelay(' ', 'x'))
+        }
+        return true
+      },
+    }
+  }
 
   async function loop() {
     if (running) return
@@ -281,8 +323,8 @@
   const blockOf = (n) => n.parentElement.closest('li, p, .label')
   const sectionOf = (n) => n.parentElement.closest('section') || doc
 
-  // Empty every text node, then type them back in order, with a short beat
-  // between lines and a longer one between sections.
+  // Empty every text node, then type them back in order: Enter between
+  // lines, Enter Enter between sections, one keystroke from label to text.
   function startIntro() {
     const nodes = textNodes(doc)
     doc.classList.add('is-ready')
@@ -300,6 +342,8 @@
     queue.push(waitStep(600))
 
     const typoUsed = new Set()
+    const firstSection = sectionOf(jobs[0].n)
+    let firstSectionChars = 0
     jobs.forEach(({ n, text }, i) => {
       const typoEl = n.parentElement.closest('[data-typo]')
       let tokens = [...text]
@@ -308,12 +352,15 @@
         tokens = withTypo(text, typoEl.dataset.typo)
       }
       queue.push(typeStep(rangeIn(n, 0), tokens))
+      if (sectionOf(n) === firstSection) firstSectionChars += text.length
 
       const next = jobs[i + 1]
       if (!next) return
-      if (sectionOf(n) !== sectionOf(next.n)) queue.push(waitStep(380))
-      else if (blockOf(n) !== blockOf(next.n)) queue.push(waitStep(160))
+      const to = rangeIn(next.n, 0)
+      if (sectionOf(n) !== sectionOf(next.n)) queue.push(keysStep(2, to))
+      else if (blockOf(n) !== blockOf(next.n)) queue.push(keysStep(1, to))
     })
+    rampStart = firstSectionChars
     loop()
   }
 
