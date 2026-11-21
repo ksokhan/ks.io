@@ -8,10 +8,10 @@
 
   // --- Tunables -------------------------------------------------------------
 
-  // Typing speed (a "word" is 5 characters): the opening line at WPM_START,
+  // Typing speed for the header (a "word" is 5 characters): the opening line at WPM_START,
   // then easing up to WPM_END over the next RAMP_CHARS characters.
-  const WPM_START = 240
-  const WPM_END = 765
+  const WPM_START = 216
+  const WPM_END = 690
   const RAMP_CHARS = 40
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
@@ -369,11 +369,11 @@
   const blockOf = (n) => n.parentElement.closest('li, p, .label')
   const sectionOf = (n) => n.parentElement.closest('section') || doc
 
-  // Pages opt in to being typed out with data-typeout (the homepage). On other
-  // pages my caret just rests at the end of the opening paragraph.
+  // Pages opt in to the intro with data-typeout (the homepage): the first
+  // section is typed out, then the rest fades in line by line. My caret rests
+  // at the end of the opening section, here and on other pages.
   const typesOut = doc.hasAttribute('data-typeout')
-  const restingPlace = () =>
-    rangeAtEnd(typesOut ? doc : doc.querySelector('.items') || doc)
+  const restingPlace = () => rangeAtEnd(doc.querySelector('.items') || doc)
 
   // Empty every text node, then type them back in order: Enter between
   // lines, Enter Enter between sections, one keystroke from label to text.
@@ -388,12 +388,14 @@
     }
     introRunning = true
 
-    // Labels aren't typed: they start hidden and fade in once the first line
-    // of their section is half typed.
-    const labels = [...doc.querySelectorAll('.label')]
-    labels.forEach((l) => l.classList.add('is-hidden'))
+    // Only the first section is typed. Its label isn't typed either: it fades
+    // in once the first line is half typed. Everything after it is hidden
+    // until the typing is done, then fades in line by line.
+    const header = sectionOf(nodes[0])
+    veiled = [...doc.querySelectorAll('.label, .items > *')].filter((el) => !header.contains(el) || el.classList.contains('label'))
+    veiled.forEach((el) => el.classList.add('is-hidden'))
     const jobs = nodes
-      .filter((n) => !n.parentElement.closest('.label'))
+      .filter((n) => header.contains(n) && !n.parentElement.closest('.label'))
       .map((n) => {
         const text = n.data.replace(/\s+/g, ' ')
         n.data = ''
@@ -438,6 +440,28 @@
     loop()
   }
 
+  // Fade everything still hidden in, one line after another, top to bottom.
+  let veiled = []
+  const STAGGER_MS = 70
+  function revealRest() {
+    const hidden = veiled.filter((el) => el.isConnected && el.classList.contains('is-hidden'))
+    hidden.forEach((el, i) => {
+      // A label arrives with its section's first line.
+      const step = hidden.filter((h, j) => j < i && !h.classList.contains('label')).length
+      el.style.transitionDelay = `${step * STAGGER_MS}ms`
+      el.classList.remove('is-hidden')
+    })
+    veiled = []
+    // Drop the inline delays once done, so they don't end up in saved edits.
+    setTimeout(() => {
+      hidden.forEach((el) => {
+        el.style.transitionDelay = ''
+        if (!el.getAttribute('style')) el.removeAttribute('style')
+      })
+      if (!reset.hidden) saveDoc()
+    }, hidden.length * STAGGER_MS + 800)
+  }
+
   // Skip the rest of the intro: whatever isn't typed yet fades in at once.
   // Text the visitor has edited in the meantime is left as they made it.
   function skipIntro() {
@@ -479,7 +503,7 @@
 
   function finishIntro() {
     introRunning = false
-    doc.querySelectorAll('.label.is-hidden').forEach((l) => l.classList.remove('is-hidden'))
+    revealRest()
     saveState({ typed: true })
     if (!reset.hidden) saveDoc()
   }

@@ -96,11 +96,15 @@ section + section {
   letter-spacing: 0.06em;
   text-transform: lowercase;
   color: var(--muted);
+}
+
+/* The homepage intro hides labels and lines, then fades them in (live.js). */
+.label,
+.items > * {
   transition: opacity 700ms ease;
 }
 
-/* Labels fade in during the homepage type-out (see live.js). */
-.label.is-hidden {
+.doc .is-hidden {
   opacity: 0;
 }
 

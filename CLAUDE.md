@@ -5,8 +5,9 @@ Plain static site, no build, no dependencies. Netlify publishes `public/` (see `
 - Run: `python3 -m http.server 8000 -d public`, open http://localhost:8000
 - Test: no automated tests. Check in a browser: intro typing, editing the page
   (my caret reacts), reset button, link clicks, /beliefs, light/dark toggle, mobile width.
-- Copy changes: edit the HTML. Pages with `data-typeout` on `<main>` (homepage only)
-  are typed out on load (Esc or a touch tap skips it, the top-right icon replays it); `data-typo="Kon|ts"` makes the caret type "ts" by mistake
+- Copy changes: edit the HTML. On pages with `data-typeout` on `<main>` (homepage only)
+  the first section is typed out on load and the rest fades in line by line (Esc or a
+  touch tap skips, the top-right icon replays); `data-typo="Kon|ts"` makes the caret type "ts" by mistake
   after "Kon" and fix it. Speed
   (`WPM_START`, `WPM_END`, `RAMP_CHARS`) and the cheeky reaction lines (`LINES`)
   are at the top of `public/live.js`.
