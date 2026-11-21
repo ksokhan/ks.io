@@ -87,7 +87,7 @@ section {
 }
 
 section + section {
-  margin-top: 88px;
+  margin-top: 46px;
 }
 
 .label {
@@ -184,16 +184,14 @@ a:hover {
   display: none;
 }
 
-/* Fades the last few typed characters in behind my caret (see live.js). */
+/* Fades the last few typed characters in behind my caret (see live.js).
+   Solid for the stretch nearest the caret, so a new letter appears fully
+   hidden and only eases in once the caret has moved on. */
 .me-trail {
   position: absolute;
   top: 0;
   left: 0;
-  background: linear-gradient(
-    to right,
-    transparent,
-    color-mix(in srgb, var(--bg) 85%, transparent)
-  );
+  background: linear-gradient(to right, transparent, var(--bg) 60%);
   opacity: 0;
   pointer-events: none;
   transition: opacity 260ms ease;
@@ -201,6 +199,7 @@ a:hover {
 
 .me-trail.is-active {
   opacity: 1;
+  transition: none; /* cover instantly; only ever fade out */
 }
 
 .me.is-idle {
@@ -310,7 +309,7 @@ a:hover {
   }
 
   section + section {
-    margin-top: 64px;
+    margin-top: 46px;
   }
 
   .doc > .aside {

@@ -143,7 +143,7 @@
     // Moving on along the same line keeps the trail; anything else (a new
     // line, a backspace, a jump) hands over to the other trail, leaving the
     // old one to fade out where it was.
-    const onward = last && Math.abs(py - last.py) < 2 && px > last.px && px - last.px < h * 1.5
+    const onward = last && Math.abs(py - last.py) < 2 && px >= last.px && px - last.px < h * 1.5
     last = { px, py }
 
     caret.hidden = false
@@ -155,10 +155,11 @@
       trail = trail === trails[0] ? trails[1] : trails[0]
       trail.classList.add('is-active')
     }
-    const w = Math.round(h * 1.6)
+    const w = Math.round(h * 2)
     trail.style.width = `${w}px`
-    trail.style.height = `${h}px`
-    trail.style.transform = `translate(${px - w}px, ${py}px)`
+    // Taller than the glyphs so link underlines are covered too.
+    trail.style.height = `${Math.round(h * 1.45)}px`
+    trail.style.transform = `translate(${px - w}px, ${py - Math.round(h * 0.05)}px)`
   }
 
   let placeQueued = false
