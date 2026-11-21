@@ -8,11 +8,11 @@
 
   // --- Tunables -------------------------------------------------------------
 
-  // Typing speed (a "word" is 5 characters): the first section at WPM_START,
+  // Typing speed (a "word" is 5 characters): the opening line at WPM_START,
   // then easing up to WPM_END over the next RAMP_CHARS characters.
   const WPM_START = 200
   const WPM_END = 350
-  const RAMP_CHARS = 200
+  const RAMP_CHARS = 80
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
   const REACT_COOLDOWN_MS = 5000
@@ -71,6 +71,21 @@
   caret.setAttribute('aria-hidden', 'true')
   document.body.append(caret)
 
+  // A soft fade trailing the caret: a gradient to the page colour over the
+  // last few characters, so new text eases in instead of popping. It's an
+  // overlay, so the document's text is never wrapped or restyled.
+  // Two of them: on a jump (new line) the old one fades out where it was, so
+  // the end of the previous line eases in too.
+  const trails = [0, 1].map(() => {
+    const el = document.createElement('div')
+    el.className = 'me-trail'
+    el.setAttribute('aria-hidden', 'true')
+    document.body.append(el)
+    return el
+  })
+  let trail = trails[0]
+  let last = null // previous caret position, to decide whether to glide
+
   // A live Range: the DOM keeps it valid as the visitor edits around it.
   let me = document.createRange()
 
@@ -123,9 +138,27 @@
   }
 
   function placeAt(x, y, h) {
+    const px = x + scrollX - 1
+    const py = y + scrollY
+    // Moving on along the same line keeps the trail; anything else (a new
+    // line, a backspace, a jump) hands over to the other trail, leaving the
+    // old one to fade out where it was.
+    const onward = last && Math.abs(py - last.py) < 2 && px > last.px && px - last.px < h * 1.5
+    last = { px, py }
+
     caret.hidden = false
     caret.style.height = `${h}px`
-    caret.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
+    caret.style.transform = `translate(${px}px, ${py}px)`
+
+    if (!onward && trail.classList.contains('is-active')) {
+      trail.classList.remove('is-active')
+      trail = trail === trails[0] ? trails[1] : trails[0]
+      trail.classList.add('is-active')
+    }
+    const w = Math.round(h * 1.6)
+    trail.style.width = `${w}px`
+    trail.style.height = `${h}px`
+    trail.style.transform = `translate(${px - w}px, ${py}px)`
   }
 
   let placeQueued = false
@@ -140,6 +173,7 @@
 
   function setIdle(idle) {
     caret.classList.toggle('is-idle', idle)
+    trail.classList.toggle('is-active', !idle)
   }
 
   function moveTo(range) {
@@ -238,8 +272,8 @@
 
   // Uneven but averaging the current WPM, with a beat after sentences.
   function charDelay(ch, next) {
-    let ms = msPerChar() * (0.5 + Math.random())
-    if (/[.!?]/.test(ch) && next === ' ') ms += 160
+    let ms = msPerChar() * (0.75 + Math.random() * 0.5)
+    if (/[.!?]/.test(ch) && next === ' ') ms += 120
     return ms
   }
 
@@ -383,8 +417,10 @@
     queue.push(waitStep(600))
 
     const typoUsed = new Set()
-    const firstSection = sectionOf(jobs[0].n)
-    let firstSectionChars = 0
+    // The opening line (label and first line of text) goes at WPM_START;
+    // the speed-up starts right after it.
+    let openingChars = 0
+    let openingDone = false
     jobs.forEach(({ n, text }, i) => {
       const typoEl = n.parentElement.closest('[data-typo]')
       let tokens = [...text]
@@ -393,7 +429,10 @@
         tokens = withTypo(text, typoEl.dataset.typo)
       }
       queue.push(typeStep(rangeIn(n, 0), tokens))
-      if (sectionOf(n) === firstSection) firstSectionChars += text.length
+      if (!openingDone) {
+        openingChars += text.length
+        openingDone = !n.parentElement.closest('.label')
+      }
 
       const next = jobs[i + 1]
       if (!next) return
@@ -401,7 +440,7 @@
       if (sectionOf(n) !== sectionOf(next.n)) queue.push(keysStep(2, to))
       else if (blockOf(n) !== blockOf(next.n)) queue.push(keysStep(1, to))
     })
-    rampStart = firstSectionChars
+    rampStart = openingChars
     queue.push({
       async run() {
         finishIntro()

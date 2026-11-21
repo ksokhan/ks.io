@@ -177,10 +177,30 @@ a:hover {
   background: var(--text);
   pointer-events: none;
   will-change: transform;
+  z-index: 1;
 }
 
 .me[hidden] {
   display: none;
+}
+
+/* Fades the last few typed characters in behind my caret (see live.js). */
+.me-trail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--bg) 85%, transparent)
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+
+.me-trail.is-active {
+  opacity: 1;
 }
 
 .me.is-idle {
