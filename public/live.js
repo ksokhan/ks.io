@@ -66,19 +66,12 @@
 
   // --- My caret -------------------------------------------------------------
 
-  // Two carets, told apart by colour like co-editors in Google Docs or
-  // Notion: mine (blue, solid) and the visitor's (pink, blinking). Both are
-  // drawn here, since a native caret can be coloured but can't have the dot.
+  // My caret: drawn to look like a native one (the visitor's is native, just
+  // coloured), so the two are told apart by colour, like co-editors.
   const caret = document.createElement('div')
   caret.className = 'caret me is-idle'
   caret.setAttribute('aria-hidden', 'true')
   document.body.append(caret)
-
-  const yours = document.createElement('div')
-  yours.className = 'caret you'
-  yours.setAttribute('aria-hidden', 'true')
-  yours.hidden = true
-  document.body.append(yours)
 
   // A live Range: the DOM keeps it valid as the visitor edits around it.
   let me = document.createRange()
@@ -732,30 +725,7 @@
     if (spot) moveTo(rangeAtEnd(spot), { glide: true })
   }
 
-  // The visitor's caret: drawn at their collapsed selection while the
-  // document has focus; the blink restarts on every move, like a native one.
-  function placeYours() {
-    const sel = getSelection()
-    const show =
-      document.activeElement === doc && sel.rangeCount && sel.isCollapsed && doc.contains(sel.anchorNode)
-    yours.hidden = !show
-    if (!show) return
-    const { x, y, h } = rectAt(sel.getRangeAt(0))
-    yours.style.height = `${h}px`
-    yours.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
-    yours.classList.remove('is-blinking')
-    void yours.offsetWidth // restart the blink animation
-    yours.classList.add('is-blinking')
-  }
-
-  document.addEventListener('selectionchange', () =>
-    requestAnimationFrame(() => {
-      placeYours()
-      stepAside()
-    })
-  )
-  doc.addEventListener('focus', () => requestAnimationFrame(placeYours))
-  doc.addEventListener('blur', () => (yours.hidden = true))
+  document.addEventListener('selectionchange', () => requestAnimationFrame(stepAside))
 
   // --- Events ---------------------------------------------------------------
 
@@ -794,14 +764,8 @@
     }
   })
 
-  addEventListener('resize', () => {
-    schedulePlace()
-    placeYours()
-  })
-  new ResizeObserver(() => {
-    schedulePlace()
-    requestAnimationFrame(placeYours)
-  }).observe(doc)
+  addEventListener('resize', schedulePlace)
+  new ResizeObserver(schedulePlace).observe(doc)
 
   // Wait for fonts so the typing doesn't reflow under the caret.
   ;(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {

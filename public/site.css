@@ -20,7 +20,7 @@
   --muted: #8a857b;
   --rule: #4a4743;
   --me: #5b8def; /* my caret */
-  --you: #e0528c; /* the visitor's caret */
+  --you: #ff3d8b; /* the visitor's (native) caret */
   --label-col: 200px;
   /* One line: 1.5x the body size. Every line on the page uses it. */
   --line: 36px;
@@ -36,7 +36,7 @@
     --muted: #6f7075;
     --rule: #d3d4d7;
     --me: #2f6fde;
-  --you: #c8306f;
+  --you: #e0156b;
     color-scheme: light;
   }
 }
@@ -47,7 +47,7 @@
   --muted: #6f7075;
   --rule: #d3d4d7;
   --me: #2f6fde;
-  --you: #c8306f;
+  --you: #e0156b;
   color-scheme: light;
 }
 
@@ -83,7 +83,7 @@ body {
   max-width: calc(900px + 120px);
   padding: 140px 48px 140px 120px;
   outline: none;
-  caret-color: transparent; /* drawn by live.js, see .caret */
+  caret-color: var(--you);
 }
 
 section {
@@ -186,39 +186,30 @@ a:hover {
   }
 }
 
-/* Carets (drawn by live.js): mine in blue and solid, the visitor's in pink
-   and blinking, each with a small dot on top. */
+/* My caret (drawn by live.js), made to look like the visitor's native one:
+   a thin blinking line, blue instead of pink. Solid while typing. */
 .caret {
   position: absolute;
   top: 0;
   left: 0;
-  width: 2px;
-  border-radius: 1px;
+  width: 1px;
   background: var(--me);
   pointer-events: none;
   will-change: transform;
 }
 
-.caret::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: inherit;
+/* Touch screens draw a thicker native caret. */
+@media (pointer: coarse) {
+  .caret {
+    width: 2px;
+  }
 }
 
 .caret[hidden] {
   display: none;
 }
 
-.caret.you {
-  background: var(--you);
-}
-
-.caret.you.is-blinking {
+.caret.is-idle {
   animation: blink 1.06s steps(1) infinite;
 }
 
