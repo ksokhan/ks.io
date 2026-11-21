@@ -66,19 +66,19 @@
 
   // --- My caret -------------------------------------------------------------
 
-  // Styled like a co-editor's cursor in Google Docs or Notion: a solid
-  // coloured line with a name tag, so it reads as a second person next to the
-  // visitor's own (native, blinking) caret.
+  // Two carets, told apart by colour like co-editors in Google Docs or
+  // Notion: mine (blue, solid) and the visitor's (pink, blinking). Both are
+  // drawn here, since a native caret can be coloured but can't have the dot.
   const caret = document.createElement('div')
-  caret.className = 'me is-idle'
+  caret.className = 'caret me is-idle'
   caret.setAttribute('aria-hidden', 'true')
-  // A pin head: a circle that tapers into the 2px caret line, with my initial.
-  caret.innerHTML =
-    '<span class="me-pin"><svg viewBox="0 0 18 22" aria-hidden="true">' +
-    '<path d="M9 1A8 8 0 0 1 15.2 14C12 17.5 10 19 10 22H8C8 19 6 17.5 2.8 14A8 8 0 0 1 9 1Z"/>' +
-    '</svg><span class="me-initial">K</span></span>'
   document.body.append(caret)
 
+  const yours = document.createElement('div')
+  yours.className = 'caret you'
+  yours.setAttribute('aria-hidden', 'true')
+  yours.hidden = true
+  document.body.append(yours)
 
   // A live Range: the DOM keeps it valid as the visitor edits around it.
   let me = document.createRange()
@@ -732,7 +732,30 @@
     if (spot) moveTo(rangeAtEnd(spot), { glide: true })
   }
 
-  document.addEventListener('selectionchange', () => requestAnimationFrame(stepAside))
+  // The visitor's caret: drawn at their collapsed selection while the
+  // document has focus; the blink restarts on every move, like a native one.
+  function placeYours() {
+    const sel = getSelection()
+    const show =
+      document.activeElement === doc && sel.rangeCount && sel.isCollapsed && doc.contains(sel.anchorNode)
+    yours.hidden = !show
+    if (!show) return
+    const { x, y, h } = rectAt(sel.getRangeAt(0))
+    yours.style.height = `${h}px`
+    yours.style.transform = `translate(${x + scrollX - 1}px, ${y + scrollY}px)`
+    yours.classList.remove('is-blinking')
+    void yours.offsetWidth // restart the blink animation
+    yours.classList.add('is-blinking')
+  }
+
+  document.addEventListener('selectionchange', () =>
+    requestAnimationFrame(() => {
+      placeYours()
+      stepAside()
+    })
+  )
+  doc.addEventListener('focus', () => requestAnimationFrame(placeYours))
+  doc.addEventListener('blur', () => (yours.hidden = true))
 
   // --- Events ---------------------------------------------------------------
 
@@ -771,8 +794,14 @@
     }
   })
 
-  addEventListener('resize', schedulePlace)
-  new ResizeObserver(schedulePlace).observe(doc)
+  addEventListener('resize', () => {
+    schedulePlace()
+    placeYours()
+  })
+  new ResizeObserver(() => {
+    schedulePlace()
+    requestAnimationFrame(placeYours)
+  }).observe(doc)
 
   // Wait for fonts so the typing doesn't reflow under the caret.
   ;(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
