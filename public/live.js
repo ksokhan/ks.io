@@ -1,5 +1,5 @@
 // The page is one contenteditable document. "Me" is a custom caret that
-// types the opening line, pastes the rest, then types a little more. When a
+// types the whole page out on load (fumbling one word early on). When a
 // visitor edits, my caret waits for them to pause, types a cheeky line next to
 // their edit, then carries on with whatever it was doing.
 ;(() => {
@@ -8,6 +8,7 @@
 
   // --- Tunables -------------------------------------------------------------
 
+  const WPM = 120 // typing speed (a "word" is 5 characters)
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
   const REACT_COOLDOWN_MS = 5000
@@ -104,18 +105,32 @@
     place()
   }
 
+  // Text nodes that are content, in document order. Whitespace-only nodes
+  // with a newline are just HTML indentation between tags, so skip those.
+  function textNodes(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    const nodes = []
+    while (walker.nextNode()) {
+      const n = walker.currentNode
+      if (/\S/.test(n.data) || !n.data.includes('\n')) nodes.push(n)
+    }
+    return nodes
+  }
+
+  function rangeIn(node, offset) {
+    const r = document.createRange()
+    r.setStart(node, offset)
+    return r
+  }
+
   // End of an element's text. Prefer a position inside the last text node:
   // element-boundary positions have no client rect to measure the caret from.
   function rangeAtEnd(el) {
+    const last = textNodes(el).pop()
+    if (last) return rangeIn(last, last.length)
     const r = document.createRange()
-    let node = el
-    while (node.lastChild && node.lastChild.nodeType !== Node.COMMENT_NODE) node = node.lastChild
-    if (node.nodeType === Node.TEXT_NODE) {
-      r.setStart(node, node.length)
-    } else {
-      r.selectNodeContents(el)
-      r.collapse(false)
-    }
+    r.selectNodeContents(el)
+    r.collapse(false)
     return r
   }
 
@@ -140,6 +155,15 @@
     range.collapse(true)
   }
 
+  function backspaceAt(range) {
+    const node = range.startContainer
+    const offset = range.startOffset
+    if (node.nodeType !== Node.TEXT_NODE || offset === 0) return
+    node.deleteData(offset - 1, 1)
+    range.setStart(node, offset - 1)
+    range.collapse(true)
+  }
+
   // --- Script runner --------------------------------------------------------
   // A queue of steps. Typing pauses while the visitor is typing, and yields to
   // a pending reaction mid-word; the unfinished step stays queued so I pick up
@@ -160,31 +184,42 @@
     }
   }
 
+  const BACKSPACE = '\b'
+  const MS_PER_CHAR = 60000 / (WPM * 5)
+
+  // Uneven but averaging WPM, with a beat after sentence punctuation.
   function charDelay(ch, next) {
-    let ms = 45 + Math.random() * 70
-    if (ch === ' ' && Math.random() < 0.15) ms += 120
-    if (/[.,!?)]/.test(ch) && next) ms += 220
+    let ms = MS_PER_CHAR * (0.5 + Math.random())
+    if (/[.!?]/.test(ch) && next === ' ') ms += 160
     return ms
   }
 
-  function typeStep(range, text, { interruptible = true } = {}) {
+  // tokens: an array of characters, BACKSPACE, or { pause: ms }.
+  function typeStep(range, tokens, { interruptible = true } = {}) {
+    let text = typeof tokens === 'string' ? [...tokens] : tokens
     return {
       async run(gen) {
         moveTo(range)
-        while (text) {
+        while (text.length) {
           if (gen !== generation) return true
           if (interruptible && pendingReaction) return false
           if (Date.now() - lastInput < CALM_MS) {
             await calm()
             continue
           }
+          const token = text[0]
+          text = text.slice(1)
+          if (typeof token === 'object') {
+            setIdle(true)
+            await sleep(token.pause)
+            continue
+          }
           setIdle(false)
           moveTo(range)
-          insertAt(range, text[0])
+          if (token === BACKSPACE) backspaceAt(range)
+          else insertAt(range, token)
           place()
-          const ch = text[0]
-          text = text.slice(1)
-          await sleep(charDelay(ch, text[0]))
+          await sleep(token === BACKSPACE ? MS_PER_CHAR * 0.8 : charDelay(token, text[0]))
         }
         return true
       },
@@ -195,13 +230,6 @@
     async run() {
       setIdle(true)
       await sleep(ms)
-      return true
-    },
-  })
-
-  const doStep = (fn) => ({
-    async run() {
-      fn()
       return true
     },
   })
@@ -233,33 +261,59 @@
 
   // --- Intro ----------------------------------------------------------------
 
-  function startIntro() {
-    const intro = doc.querySelector('[data-intro]')
-    const later = doc.querySelector('[data-later]')
-    const introText = intro ? intro.textContent : ''
-    const laterText = later ? later.textContent : ''
+  // data-typo="Kon|ts" on an element: after typing "Kon", type "ts" by
+  // mistake, notice, backspace it, then carry on.
+  function withTypo(text, spec) {
+    const [prefix, wrong] = (spec || '').split('|')
+    const at = prefix && wrong ? text.indexOf(prefix) : -1
+    if (at < 0) return [...text]
+    const cut = at + prefix.length
+    return [
+      ...text.slice(0, cut),
+      ...wrong,
+      { pause: 420 },
+      ...BACKSPACE.repeat(wrong.length),
+      { pause: 120 },
+      ...text.slice(cut),
+    ]
+  }
 
-    if (reducedMotion || !intro) {
-      doc.classList.add('is-ready')
-      moveTo(rangeAtEnd(intro || doc))
+  const blockOf = (n) => n.parentElement.closest('li, p, .label')
+  const sectionOf = (n) => n.parentElement.closest('section') || doc
+
+  // Empty every text node, then type them back in order, with a short beat
+  // between lines and a longer one between sections.
+  function startIntro() {
+    const nodes = textNodes(doc)
+    doc.classList.add('is-ready')
+    if (reducedMotion || !nodes.length) {
+      moveTo(rangeAtEnd(doc))
       return
     }
 
-    intro.textContent = ''
-    if (later) later.textContent = ''
-    doc.classList.add('is-intro', 'is-ready')
-    moveTo(rangeAtEnd(intro))
+    const jobs = nodes.map((n) => {
+      const text = n.data.replace(/\s+/g, ' ')
+      n.data = ''
+      return { n, text }
+    })
+    moveTo(rangeIn(jobs[0].n, 0))
+    queue.push(waitStep(600))
 
-    queue.push(waitStep(700), typeStep(rangeAtEnd(intro), introText), waitStep(450))
-    queue.push(
-      doStep(() => {
-        doc.classList.remove('is-intro')
-        place()
-      })
-    )
-    if (later) {
-      queue.push(waitStep(900), typeStep(rangeAtEnd(later), laterText))
-    }
+    const typoUsed = new Set()
+    jobs.forEach(({ n, text }, i) => {
+      const typoEl = n.parentElement.closest('[data-typo]')
+      let tokens = [...text]
+      if (typoEl && !typoUsed.has(typoEl) && text.includes(typoEl.dataset.typo.split('|')[0])) {
+        typoUsed.add(typoEl)
+        tokens = withTypo(text, typoEl.dataset.typo)
+      }
+      queue.push(typeStep(rangeIn(n, 0), tokens))
+
+      const next = jobs[i + 1]
+      if (!next) return
+      if (sectionOf(n) !== sectionOf(next.n)) queue.push(waitStep(380))
+      else if (blockOf(n) !== blockOf(next.n)) queue.push(waitStep(160))
+    })
     loop()
   }
 
@@ -352,11 +406,9 @@
     queue = []
     pendingReaction = null
     clearTimeout(reactTimer)
-    doc.classList.remove('is-intro')
     doc.innerHTML = pristine
     reset.hidden = true
-    const intro = doc.querySelector('[data-intro]')
-    moveTo(rangeAtEnd(intro || doc))
+    moveTo(rangeAtEnd(doc))
     setIdle(true)
   })
 
@@ -366,8 +418,6 @@
     lastInput = Date.now()
     lastEditKind = e.inputType && e.inputType.startsWith('delete') ? 'delete' : 'insert'
     lastEditBlock = editedBlock() || lastEditBlock
-    // If they start editing mid-intro, skip straight to the "pasted" page.
-    doc.classList.remove('is-intro')
     reset.hidden = false
     schedulePlace()
     clearTimeout(reactTimer)

@@ -166,16 +166,6 @@ a:hover {
   }
 }
 
-/* During the intro only the opening line is shown; the rest is "pasted" in.
-   visibility (not display) keeps layout stable so nothing jumps on paste. */
-.doc.is-intro {
-  visibility: hidden;
-}
-
-.doc.is-intro [data-intro] {
-  visibility: visible;
-}
-
 /* My cursor: a custom caret so it can sit alongside the visitor's own. */
 .me {
   position: absolute;
