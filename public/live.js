@@ -30,6 +30,40 @@
   const pristine = doc.innerHTML
   const pristineLength = doc.textContent.trim().length
 
+  // --- Saved state ----------------------------------------------------------
+  // Per page, in localStorage: whether the page has been typed out, and the
+  // visitor's edited document. Saves are tied to a hash of the page's original
+  // HTML, so when the site's copy changes, stale edits are dropped and the new
+  // version is typed out again.
+
+  const STORE_KEY = `ksio:${location.pathname}`
+  const version = hash(pristine)
+
+  function hash(str) {
+    let h = 5381
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0
+    return (h >>> 0).toString(36)
+  }
+
+  function loadState() {
+    try {
+      const state = JSON.parse(localStorage.getItem(STORE_KEY))
+      return state && state.v === version ? state : {}
+    } catch (e) {
+      return {} // blocked storage or bad JSON: behave like a first visit
+    }
+  }
+
+  function saveState(patch) {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ ...loadState(), ...patch, v: version }))
+    } catch (e) {
+      // Storage blocked or full: edits just won't survive a reload.
+    }
+  }
+
+  const saved = loadState()
+
   // --- My caret -------------------------------------------------------------
 
   const caret = document.createElement('div')
@@ -334,10 +368,11 @@
   function startIntro() {
     const nodes = textNodes(doc)
     doc.classList.add('is-ready')
-    if (!typesOut || reducedMotion || !nodes.length) {
+    if (!typesOut || reducedMotion || !nodes.length || saved.typed) {
       moveTo(restingPlace())
       return
     }
+    introRunning = true
 
     const jobs = nodes.map((n) => {
       const text = n.data.replace(/\s+/g, ' ')
@@ -367,17 +402,44 @@
       else if (blockOf(n) !== blockOf(next.n)) queue.push(keysStep(1, to))
     })
     rampStart = firstSectionChars
+    queue.push({
+      async run() {
+        finishIntro()
+        return true
+      },
+    })
     loop()
+  }
+
+  // Edits made mid-intro sit in a half-typed page, so they're saved only
+  // once the typing is done.
+  let introRunning = false
+  let saveTimer = 0
+
+  function finishIntro() {
+    introRunning = false
+    saveState({ typed: true })
+    if (!reset.hidden) saveDoc()
+  }
+
+  function saveDoc() {
+    if (introRunning) return
+    saveState({ html: doc.innerHTML, reactions, used: [...used] })
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(saveDoc, 300)
   }
 
   // --- Reacting to visitors -------------------------------------------------
 
-  let reactions = 0
+  let reactions = saved.reactions || 0
   let lastReactionAt = 0
   let lastEditKind = 'insert'
   let lastEditBlock = null
   let reactTimer = 0
-  const used = new Set()
+  const used = new Set(saved.used || [])
 
   function pick(kind) {
     const pool = LINES[kind].filter((l) => !used.has(l))
@@ -439,6 +501,7 @@
         if (gen !== generation) return
         const aside = makeAside(block)
         await typeStep(rangeAtEnd(aside), line, { interruptible: false }).run(gen)
+        saveDoc()
         await sleep(600)
       },
     }
@@ -459,11 +522,20 @@
     queue = []
     pendingReaction = null
     clearTimeout(reactTimer)
+    clearTimeout(saveTimer)
     doc.innerHTML = pristine
     reset.hidden = true
+    introRunning = false
+    saveState({ typed: true, html: null })
     moveTo(restingPlace())
     setIdle(true)
   })
+
+  // Bring back a previous visit's edits.
+  if (saved.html) {
+    doc.innerHTML = saved.html
+    reset.hidden = false
+  }
 
   // --- Events ---------------------------------------------------------------
 
@@ -473,6 +545,7 @@
     lastEditBlock = editedBlock() || lastEditBlock
     reset.hidden = false
     schedulePlace()
+    scheduleSave()
     clearTimeout(reactTimer)
     reactTimer = setTimeout(maybeReact, REACT_DELAY_MS)
   })

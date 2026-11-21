@@ -10,5 +10,8 @@ Plain static site, no build, no dependencies. Netlify publishes `public/` (see `
   after "Kon" and fix it. Speed
   (`WPM_START`, `WPM_END`, `RAMP_CHARS`) and the cheeky reaction lines (`LINES`)
   are at the top of `public/live.js`.
+- State persists per page in localStorage (`ksio:<path>`): the typed-out flag and the
+  visitor's edits, tied to a hash of the page's HTML. To see the intro again, clear it
+  (`localStorage.clear()`) or change the page's copy.
 - Plausible analytics script is blocked in this container; abort it in Playwright
   (`route(/plausible/, r => r.abort())`) and use `waitUntil: 'domcontentloaded'`.
