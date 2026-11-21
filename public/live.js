@@ -72,7 +72,11 @@
   const caret = document.createElement('div')
   caret.className = 'me is-idle'
   caret.setAttribute('aria-hidden', 'true')
-  caret.innerHTML = '<span class="me-tag">K</span>'
+  // A pin head: a circle that tapers into the 2px caret line, with my initial.
+  caret.innerHTML =
+    '<span class="me-pin"><svg viewBox="0 0 18 22" aria-hidden="true">' +
+    '<path d="M9 1A8 8 0 0 1 15.2 14C12 17.5 10 19 10 22H8C8 19 6 17.5 2.8 14A8 8 0 0 1 9 1Z"/>' +
+    '</svg><span class="me-initial">K</span></span>'
   document.body.append(caret)
 
 
