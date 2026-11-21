@@ -104,7 +104,7 @@
     const cs = getComputedStyle(el)
     const box = el.getBoundingClientRect()
     const size = parseFloat(cs.fontSize)
-    const line = parseFloat(cs.lineHeight) || size * 1.45
+    const line = parseFloat(cs.lineHeight) || size * 1.5
     const h = size * 1.2
     return {
       x: box.left + parseFloat(cs.paddingLeft),
@@ -298,7 +298,7 @@
           if (i < presses - 1) {
             const here = rectAt(me)
             const target = rectAt(to)
-            const line = parseFloat(getComputedStyle(doc).lineHeight) || here.h * 1.45
+            const line = parseFloat(getComputedStyle(doc).lineHeight) || here.h * 1.5
             placeAt(target.x, here.y + line, here.h)
           } else {
             moveTo(to)

@@ -20,6 +20,8 @@
   --muted: #8a857b;
   --rule: #4a4743;
   --label-col: 200px;
+  /* One line: 1.5x the body size. Every line on the page uses it. */
+  --line: 36px;
   color-scheme: dark light;
 }
 
@@ -61,7 +63,7 @@ html {
 
 body {
   margin: 0;
-  font: 300 24px/1.45 'Public Sans', system-ui, sans-serif;
+  font: 300 24px/var(--line) 'Public Sans', system-ui, sans-serif;
   letter-spacing: -0.01em;
   text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
@@ -90,7 +92,7 @@ section + section {
 
 .label {
   margin: 0;
-  font: 400 13px/1.45 'Inconsolata', ui-monospace, monospace;
+  font: 400 13px/var(--line) 'Inconsolata', ui-monospace, monospace;
   letter-spacing: 0.06em;
   text-transform: lowercase;
   color: var(--muted);
@@ -103,7 +105,7 @@ section + section {
 }
 
 .items > * + * {
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .items p {
@@ -115,9 +117,9 @@ section > .items:first-child {
   grid-column: 2;
 }
 
-/* Paragraph lists (the /beliefs page) breathe more than line lists. */
+/* Paragraph lists (the /beliefs page): one empty line between paragraphs. */
 .items.is-spaced > * + * {
-  margin-top: 28px;
+  margin-top: var(--line);
 }
 
 /* "← ks.io" on subpages: its own row in the label column. */
@@ -267,6 +269,10 @@ a:hover {
     font-size: 20px;
   }
 
+  :root {
+    --line: 30px;
+  }
+
   .doc {
     padding: 96px 24px 96px;
   }
@@ -276,7 +282,7 @@ a:hover {
   }
 
   .label {
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 
   .back {
