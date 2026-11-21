@@ -96,6 +96,12 @@ section + section {
   letter-spacing: 0.06em;
   text-transform: lowercase;
   color: var(--muted);
+  transition: opacity 700ms ease;
+}
+
+/* Labels fade in during the homepage type-out (see live.js). */
+.label.is-hidden {
+  opacity: 0;
 }
 
 .items {

@@ -274,6 +274,10 @@
           }
           const token = text[0]
           text = text.slice(1)
+          if (typeof token === 'function') {
+            token() // a cue placed mid-text, e.g. fading in a label
+            continue
+          }
           if (typeof token === 'object') {
             setIdle(true)
             await sleep(token.pause)
@@ -382,18 +386,23 @@
     }
     introRunning = true
 
-    const jobs = nodes.map((n) => {
-      const text = n.data.replace(/\s+/g, ' ')
-      n.data = ''
-      return { n, text }
-    })
+    // Labels aren't typed: they start hidden and fade in once the first line
+    // of their section is half typed.
+    const labels = [...doc.querySelectorAll('.label')]
+    labels.forEach((l) => l.classList.add('is-hidden'))
+    const jobs = nodes
+      .filter((n) => !n.parentElement.closest('.label'))
+      .map((n) => {
+        const text = n.data.replace(/\s+/g, ' ')
+        n.data = ''
+        return { n, text }
+      })
     moveTo(rangeIn(jobs[0].n, 0))
 
     const typoUsed = new Set()
-    // The opening line (label and first line of text) goes at WPM_START;
-    // the speed-up starts right after it.
-    let openingChars = 0
-    let openingDone = false
+    // The opening line goes at WPM_START; the speed-up starts right after it.
+    const openingChars = jobs[0].text.length
+    const cued = new Set()
     jobs.forEach(({ n, text }, i) => {
       const typoEl = n.parentElement.closest('[data-typo]')
       let tokens = [...text]
@@ -401,11 +410,14 @@
         typoUsed.add(typoEl)
         tokens = withTypo(text, typoEl.dataset.typo)
       }
-      queue.push(typeStep(rangeIn(n, 0), tokens))
-      if (!openingDone) {
-        openingChars += text.length
-        openingDone = !n.parentElement.closest('.label')
+      const section = sectionOf(n)
+      const label = section !== doc && section.querySelector(':scope > .label')
+      if (label && !cued.has(section)) {
+        cued.add(section)
+        const half = Math.ceil(tokens.length / 2)
+        tokens.splice(half, 0, () => label.classList.remove('is-hidden'))
       }
+      queue.push(typeStep(rangeIn(n, 0), tokens))
 
       const next = jobs[i + 1]
       if (!next) return
@@ -430,6 +442,7 @@
 
   function finishIntro() {
     introRunning = false
+    doc.querySelectorAll('.label.is-hidden').forEach((l) => l.classList.remove('is-hidden'))
     saveState({ typed: true })
     if (!reset.hidden) saveDoc()
   }
