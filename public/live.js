@@ -11,7 +11,7 @@
   // Typing speed (a "word" is 5 characters): the opening line at WPM_START,
   // then easing up to WPM_END over the next RAMP_CHARS characters.
   const WPM_START = 200
-  const WPM_END = 350
+  const WPM_END = 450
   const RAMP_CHARS = 80
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
