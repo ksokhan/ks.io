@@ -19,20 +19,14 @@
   const REPLY_WPM = 180 // my replies to visitors' edits: slower, steady
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
-  const REACT_COOLDOWN_MS = 5000
-  const MAX_REACTIONS = 4
+  const REACT_COOLDOWN_MS = 5000 // at most one look at the visitor's edits per this
 
-  const LINES = {
-    first: ['Oh, hi. Make yourself at home.'],
-    insert: ['Ooh, I like that.', 'You type faster than me.', 'Careful, I might keep that.'],
-    delete: ['Hey, I was using that.', 'Bold edit. Respect.', 'Less is more, I suppose.'],
-    wipe: ['Minimalism. I respect it.'],
-    last: ['There’s a reset button up there, by the way.'],
-  }
+  // Typed once, next to the visitor's first edit. After that I only react by
+  // drifting over to look, never with words.
+  const NOTE = 'Go ahead, it’s your page now. Reset is up top.'
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
   const pristine = doc.innerHTML
-  const pristineLength = doc.textContent.trim().length
 
   // --- Saved state ----------------------------------------------------------
   // Per page, in localStorage: whether the page has been typed out, and the
@@ -646,7 +640,7 @@
 
   function saveDoc() {
     if (introRunning) return
-    saveState({ html: doc.innerHTML, reactions, used: [...used] })
+    saveState({ html: doc.innerHTML, noted })
   }
 
   function scheduleSave() {
@@ -655,20 +649,13 @@
   }
 
   // --- Reacting to visitors -------------------------------------------------
+  // The first edit gets one honest note; later ones get a look: my caret
+  // drifts to the line beside theirs, lingers, then wanders back.
 
-  let reactions = saved.reactions || 0
+  let noted = !!saved.noted
   let lastReactionAt = 0
-  let lastEditKind = 'insert'
   let lastEditBlock = null
   let reactTimer = 0
-  const used = new Set(saved.used || [])
-
-  function pick(kind) {
-    const pool = LINES[kind].filter((l) => !used.has(l))
-    const line = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
-    if (line) used.add(line)
-    return line
-  }
 
   function editedBlock() {
     const sel = getSelection()
@@ -702,37 +689,55 @@
   }
 
   function maybeReact() {
-    if (pendingReaction || reactions >= MAX_REACTIONS) return
+    if (pendingReaction) return
     const since = Date.now() - lastReactionAt
-    if (since < REACT_COOLDOWN_MS) {
-      reactTimer = setTimeout(maybeReact, REACT_COOLDOWN_MS - since)
-      return
-    }
-
-    const wiped = doc.textContent.trim().length < pristineLength * 0.25
-    let kind = reactions === 0 ? 'first' : wiped ? 'wipe' : lastEditKind
-    if (reactions === MAX_REACTIONS - 1) kind = 'last'
-    const line = pick(kind) || pick(lastEditKind)
-    if (!line) return
-    reactions++
-
+    if (noted && since < REACT_COOLDOWN_MS) return
     const block = lastEditBlock && doc.contains(lastEditBlock) ? lastEditBlock : null
-    pendingReaction = {
+    pendingReaction = noted ? lookStep(block) : noteStep(block)
+    noted = true
+    loop()
+  }
+
+  // Glide over to where the note goes, a short beat, then type it.
+  function noteStep(block) {
+    return {
       async run(gen) {
         await sleep(250)
         if (gen !== generation) return
-        // Glide over to where the reply goes, a short beat, then type.
         const aside = makeAside(block)
         const spot = rangeAtEnd(aside)
         moveTo(spot, { glide: true })
         await sleep(280 + 150)
         if (gen !== generation) return
-        await typeStep(spot, line, { interruptible: false, wpm: REPLY_WPM }).run(gen)
+        await typeStep(spot, NOTE, { interruptible: false, wpm: REPLY_WPM }).run(gen)
         saveDoc()
         await sleep(600)
       },
     }
-    loop()
+  }
+
+  // Drift to the line beside the edit, linger as if reading, wander back.
+  function lookStep(block) {
+    return {
+      async run(gen) {
+        const lines = [...doc.querySelectorAll('.items > *')].filter((el) => el.textContent.trim())
+        const at = block ? lines.indexOf(block) : -1
+        const spot = at < 0 ? null : lines[at + 1] || lines[at - 1]
+        if (!spot) return
+        await sleep(300)
+        if (gen !== generation) return
+        moveTo(rangeAtEnd(spot), { glide: true })
+        await sleep(280 + 1400)
+        if (gen !== generation) return
+        // Wander back, unless the visitor's caret is on my usual line.
+        const home = restingPlace()
+        const sel = getSelection()
+        const theirs = sel.rangeCount && doc.contains(sel.anchorNode) ? rectAt(sel.getRangeAt(0)) : null
+        const mine = rectAt(home)
+        if (!theirs || Math.abs(theirs.y - mine.y) > mine.h * 0.6) moveTo(home, { glide: true })
+        await sleep(300)
+      },
+    }
   }
 
   // --- Reset ----------------------------------------------------------------
@@ -828,7 +833,6 @@
   doc.addEventListener('input', (e) => {
     skipIntro() // no-op unless the intro is running
     lastInput = Date.now()
-    lastEditKind = e.inputType && e.inputType.startsWith('delete') ? 'delete' : 'insert'
     lastEditBlock = editedBlock() || lastEditBlock
     reset.hidden = false
     schedulePlace()
