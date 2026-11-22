@@ -146,7 +146,20 @@
 
   function moveTo(range, { glide = false } = {}) {
     me = range
+    if (tempLine && !tempLine.contains(range.startContainer)) dropTempLine()
     place(glide)
+  }
+
+  // A line I made for myself to step aside onto (see stepAside). It goes away
+  // when I move off it, unless the visitor has typed in it or is on it.
+  let tempLine = null
+  function dropTempLine() {
+    const line = tempLine
+    tempLine = null
+    if (!line || !line.isConnected || line.textContent) return
+    const sel = getSelection()
+    if (sel.rangeCount && line.contains(sel.anchorNode)) return
+    line.remove()
   }
 
   // Text nodes that are content, in document order. Whitespace-only nodes
@@ -640,7 +653,13 @@
 
   function saveDoc() {
     if (introRunning) return
-    saveState({ html: doc.innerHTML, noted })
+    // Leave out my empty step-aside line; it's not part of anyone's edit.
+    const copy = doc.cloneNode(true)
+    copy.querySelectorAll('[data-temp]').forEach((el) => {
+      if (el.textContent) el.removeAttribute('data-temp')
+      else el.remove()
+    })
+    saveState({ html: copy.innerHTML, noted })
   }
 
   function scheduleSave() {
@@ -817,13 +836,23 @@
     const mine = rectAt(me)
     if (Math.abs(theirs.y - mine.y) > mine.h * 0.6) return
 
-    const lines = [...doc.querySelectorAll('.items > *')].filter((el) => el.textContent.trim())
+    // Press Enter: make an empty line right under theirs and move onto it.
     const anchor = sel.anchorNode.nodeType === Node.ELEMENT_NODE ? sel.anchorNode : sel.anchorNode.parentElement
-    const at = lines.findIndex((el) => el.contains(anchor))
-    if (at < 0) return
-    // Prefer the line below theirs; at the bottom of the page, the one above.
-    const spot = lines[at + 1] || lines[at - 1]
-    if (spot) moveTo(rangeAtEnd(spot), { glide: true })
+    const block = anchor.closest('.items > *')
+    if (!block || !doc.contains(block)) return
+    const previous = tempLine
+    tempLine = null
+    const line = document.createElement(block.tagName)
+    line.dataset.temp = ''
+    block.after(line)
+    moveTo(rangeIn(line, 0), { glide: true })
+    tempLine = line
+    if (previous && previous !== line) {
+      tempLine = previous
+      dropTempLine()
+      tempLine = line
+      place() // the page may have shifted
+    }
   }
 
   document.addEventListener('selectionchange', () => requestAnimationFrame(stepAside))

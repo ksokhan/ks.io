@@ -126,6 +126,11 @@ section + section {
   margin: 0;
 }
 
+/* An empty line my caret makes to step aside onto (live.js). */
+.items > [data-temp] {
+  min-height: var(--line);
+}
+
 /* Sections without a label still sit in the content column. */
 section > .items:first-child {
   grid-column: 2;
