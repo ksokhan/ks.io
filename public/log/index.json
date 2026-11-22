@@ -1,0 +1,107 @@
+[
+  {
+    "id": "1",
+    "commit": "2632318",
+    "date": "2024-10-30",
+    "caption": "The site as it was: a headline, three lines of CV, Inter. Fine, and untouched for two years.",
+    "path": "/log/1/"
+  },
+  {
+    "id": "2",
+    "commit": "23aae52",
+    "date": "2026-11-21",
+    "caption": "Rebuilt as one editable text file. My caret types the first line, then pastes the rest.",
+    "path": "/log/2/"
+  },
+  {
+    "id": "3",
+    "commit": "31c1a73",
+    "date": "2026-11-21",
+    "caption": "Typed out every line, fumbling my own name along the way. It felt alive, and took a minute.",
+    "path": "/log/3/"
+  },
+  {
+    "id": "4",
+    "commit": "940f445",
+    "date": "2026-11-21",
+    "caption": "A minute is a long time on a homepage. Only the homepage types now, and faster.",
+    "path": "/log/4/"
+  },
+  {
+    "id": "5",
+    "commit": "cb56aa2",
+    "date": "2026-11-21",
+    "caption": "Your edits survive a refresh, and the page only types itself once.",
+    "path": "/log/5/"
+  },
+  {
+    "id": "6",
+    "commit": "d4e114a",
+    "date": "2026-11-21",
+    "caption": "Every line on one rhythm, with no extra gaps between items. It reads like a text file.",
+    "path": "/log/6/"
+  },
+  {
+    "id": "7",
+    "commit": "3f6e85b",
+    "date": "2026-11-21",
+    "caption": "Tried fading letters in behind the caret to hide the choppiness. It looked bad, so I cut it and made the rhythm perfectly even instead.",
+    "path": "/log/7/"
+  },
+  {
+    "id": "8",
+    "commit": "19ecc8e",
+    "date": "2026-11-21",
+    "caption": "Watching the whole page type got old by the third visit. Now only the hello is typed, and the rest settles in line by line.",
+    "path": "/log/8/"
+  },
+  {
+    "id": "9",
+    "commit": "65d67df",
+    "date": "2026-11-21",
+    "caption": "Words kept jumping to the next line mid-word. Now the text is there from the start, invisible, and typing just reveals it.",
+    "path": "/log/9/"
+  },
+  {
+    "id": "10",
+    "commit": "d520c3e",
+    "date": "2026-11-21",
+    "caption": "Two people on one page. I tried a name tag, a pin head and dots, and ended up with two plain carets in different colours.",
+    "path": "/log/10/"
+  },
+  {
+    "id": "11",
+    "commit": "39182da",
+    "date": "2026-11-22",
+    "caption": "Recorded myself typing the header so it has my real rhythm.",
+    "path": "/log/11/"
+  },
+  {
+    "id": "12",
+    "commit": "3436bd1",
+    "date": "2026-11-22",
+    "caption": "Tighter letter spacing, a 1.6 line height, and 62px between sections: the line height × φ.",
+    "path": "/log/12/"
+  },
+  {
+    "id": "13",
+    "commit": "4e1c5b5",
+    "date": "2026-11-22",
+    "caption": "Canned replies to every edit felt like a dim chatbot. Now there's one honest note, and after that my caret just looks.",
+    "path": "/log/13/"
+  },
+  {
+    "id": "14",
+    "commit": "1831c9b",
+    "date": "2026-11-22",
+    "caption": "My caret steps aside when you come close, follows you down the page, and says hi! when you hover over it.",
+    "path": "/log/14/"
+  },
+  {
+    "id": "15",
+    "commit": "35ecabb",
+    "date": "2026-11-22",
+    "caption": "Product-style buttons, a proper back button, and my note in my colour.",
+    "path": "/log/15/"
+  }
+]

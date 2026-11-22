@@ -18,3 +18,8 @@ Plain static site, no build, no dependencies. Netlify publishes `public/` (see `
   (`localStorage.clear()`) or change the page's copy.
 - Plausible analytics script is blocked in this container; abort it in Playwright
   (`route(/plausible/, r => r.abort())`) and use `waitUntil: 'domcontentloaded'`.
+- Design log (clock icon top right, `public/log.js`): checkpoints and captions live in
+  `log/checkpoints.json`. After editing it, or to pick up new commits, run
+  `node scripts/build-log.mjs` and commit the regenerated `public/log/` (Netlify has no
+  build step, so the snapshots are committed). Merge PRs without squashing, or the
+  commits checkpoints point at disappear from master.

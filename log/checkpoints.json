@@ -1,0 +1,62 @@
+[
+  {
+    "commit": "2632318",
+    "caption": "The site as it was: a headline, three lines of CV, Inter. Fine, and untouched for two years."
+  },
+  {
+    "commit": "23aae52",
+    "caption": "Rebuilt as one editable text file. My caret types the first line, then pastes the rest."
+  },
+  {
+    "commit": "31c1a73",
+    "caption": "Typed out every line, fumbling my own name along the way. It felt alive, and took a minute."
+  },
+  {
+    "commit": "940f445",
+    "caption": "A minute is a long time on a homepage. Only the homepage types now, and faster."
+  },
+  {
+    "commit": "cb56aa2",
+    "caption": "Your edits survive a refresh, and the page only types itself once."
+  },
+  {
+    "commit": "d4e114a",
+    "caption": "Every line on one rhythm, with no extra gaps between items. It reads like a text file."
+  },
+  {
+    "commit": "3f6e85b",
+    "caption": "Tried fading letters in behind the caret to hide the choppiness. It looked bad, so I cut it and made the rhythm perfectly even instead."
+  },
+  {
+    "commit": "19ecc8e",
+    "caption": "Watching the whole page type got old by the third visit. Now only the hello is typed, and the rest settles in line by line."
+  },
+  {
+    "commit": "65d67df",
+    "caption": "Words kept jumping to the next line mid-word. Now the text is there from the start, invisible, and typing just reveals it."
+  },
+  {
+    "commit": "d520c3e",
+    "caption": "Two people on one page. I tried a name tag, a pin head and dots, and ended up with two plain carets in different colours."
+  },
+  {
+    "commit": "39182da",
+    "caption": "Recorded myself typing the header so it has my real rhythm."
+  },
+  {
+    "commit": "3436bd1",
+    "caption": "Tighter letter spacing, a 1.6 line height, and 62px between sections: the line height × φ."
+  },
+  {
+    "commit": "4e1c5b5",
+    "caption": "Canned replies to every edit felt like a dim chatbot. Now there's one honest note, and after that my caret just looks."
+  },
+  {
+    "commit": "1831c9b",
+    "caption": "My caret steps aside when you come close, follows you down the page, and says hi! when you hover over it."
+  },
+  {
+    "commit": "35ecabb",
+    "caption": "Product-style buttons, a proper back button, and my note in my colour."
+  }
+]
