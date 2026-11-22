@@ -659,7 +659,7 @@
       if (el.textContent) el.removeAttribute('data-temp')
       else el.remove()
     })
-    saveState({ html: copy.innerHTML, noted })
+    saveState({ html: copy.innerHTML })
   }
 
   function scheduleSave() {
@@ -671,7 +671,10 @@
   // The first edit gets one honest note; later ones get a look: my caret
   // drifts to the line beside theirs, lingers, then wanders back.
 
-  let noted = !!saved.noted
+  // The note shows on the first edit whenever the page doesn't already have
+  // it: a first visit, or after a reset. Saved edits keep it, so it isn't
+  // repeated on return visits.
+  let notedThisVisit = false
   let lastReactionAt = 0
   let lastEditBlock = null
   let reactTimer = 0
@@ -710,10 +713,11 @@
   function maybeReact() {
     if (pendingReaction) return
     const since = Date.now() - lastReactionAt
+    const noted = notedThisVisit || !!doc.querySelector('[data-note]')
     if (noted && since < REACT_COOLDOWN_MS) return
     const block = lastEditBlock && doc.contains(lastEditBlock) ? lastEditBlock : null
     pendingReaction = noted ? lookStep(block) : noteStep(block)
-    noted = true
+    notedThisVisit = true
     loop()
   }
 
@@ -724,6 +728,7 @@
         await sleep(250)
         if (gen !== generation) return
         const aside = makeAside(block)
+        aside.dataset.note = ''
         const spot = rangeAtEnd(aside)
         moveTo(spot, { glide: true })
         await sleep(280 + 150)
@@ -775,6 +780,7 @@
     clearTimeout(reactTimer)
     clearTimeout(saveTimer)
     doc.innerHTML = pristine
+    notedThisVisit = false // a clean page: the next first edit gets the note
     reset.hidden = true
     introRunning = false
     saveState({ typed: true, html: null })
@@ -802,6 +808,7 @@
       clearTimeout(reactTimer)
       clearTimeout(saveTimer)
       doc.innerHTML = pristine
+      notedThisVisit = false
       reset.hidden = true
       saveState({ html: null })
       typed = 0
