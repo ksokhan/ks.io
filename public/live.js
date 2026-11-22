@@ -739,7 +739,7 @@
   function lookStep(block) {
     return {
       async run(gen) {
-        const lines = [...doc.querySelectorAll('.items > *')].filter((el) => el.textContent.trim())
+        const lines = contentLines()
         const at = block ? lines.indexOf(block) : -1
         const spot = at < 0 ? null : lines[at + 1] || lines[at - 1]
         if (!spot) return
@@ -828,6 +828,27 @@
   // When the visitor's caret lands on the line mine is resting on, mine steps
   // aside to the end of a neighbouring line, like a co-editor making room.
 
+  // A spot in a line to land on: between two words, or at its end.
+  function spotIn(block) {
+    const spots = []
+    for (const n of textNodes(block)) {
+      for (let i = 1; i < n.length; i++) if (n.data[i - 1] === ' ' && n.data[i] !== ' ') spots.push([n, i - 1])
+      spots.push([n, n.length])
+    }
+    if (!spots.length) return rangeAtEnd(block)
+    const [n, i] = spots[Math.floor(Math.random() * spots.length)]
+    return rangeIn(n, i)
+  }
+
+  const contentLines = () => [...doc.querySelectorAll('.items > *')].filter((el) => el.textContent.trim())
+
+  function visitorBlock() {
+    const sel = getSelection()
+    if (!sel.rangeCount || !doc.contains(sel.anchorNode)) return null
+    const anchor = sel.anchorNode.nodeType === Node.ELEMENT_NODE ? sel.anchorNode : sel.anchorNode.parentElement
+    return anchor.closest('.items > *')
+  }
+
   function stepAside() {
     if (running || introRunning || caret.hidden) return
     const sel = getSelection()
@@ -835,11 +856,20 @@
     const theirs = rectAt(sel.getRangeAt(0))
     const mine = rectAt(me)
     if (Math.abs(theirs.y - mine.y) > mine.h * 0.6) return
-
-    // Press Enter: make an empty line right under theirs and move onto it.
-    const anchor = sel.anchorNode.nodeType === Node.ELEMENT_NODE ? sel.anchorNode : sel.anchorNode.parentElement
-    const block = anchor.closest('.items > *')
+    const block = visitorBlock()
     if (!block || !doc.contains(block)) return
+
+    // Mix it up: hop up a line, drop down a line (landing mid-sentence or at
+    // the end), or press Enter for a fresh line under theirs. Never a new
+    // line above theirs: that would shift their line under their cursor.
+    const lines = contentLines()
+    const at = lines.indexOf(block)
+    const above = lines[at - 1]
+    const below = lines[at + 1]
+    const roll = Math.random()
+    if (roll < 0.35 && above) return moveTo(spotIn(above), { glide: true })
+    if (roll < 0.7 && below) return moveTo(spotIn(below), { glide: true })
+
     const previous = tempLine
     tempLine = null
     const line = document.createElement(block.tagName)
@@ -854,6 +884,32 @@
       place() // the page may have shifted
     }
   }
+
+  // Follow the visitor down the page: once they stop scrolling, if my caret
+  // is out of view, glide to a random spot on a line they can see.
+  function followIntoView() {
+    if (running || introRunning || caret.hidden) return
+    const mine = rectAt(me)
+    if (mine.y >= 0 && mine.y + mine.h <= innerHeight) return
+    const theirs = visitorBlock()
+    const margin = Math.min(80, innerHeight * 0.15)
+    const visible = contentLines().filter((el) => {
+      const r = el.getBoundingClientRect()
+      return el !== theirs && r.top >= margin && r.bottom <= innerHeight - margin
+    })
+    if (!visible.length) return
+    moveTo(spotIn(visible[Math.floor(Math.random() * visible.length)]), { glide: true })
+  }
+
+  let scrollTimer = 0
+  addEventListener(
+    'scroll',
+    () => {
+      clearTimeout(scrollTimer)
+      scrollTimer = setTimeout(followIntoView, 350)
+    },
+    { passive: true }
+  )
 
   document.addEventListener('selectionchange', () => requestAnimationFrame(stepAside))
 
