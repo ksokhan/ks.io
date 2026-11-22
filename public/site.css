@@ -395,9 +395,11 @@ a:hover {
     -12px 0 28px rgb(0 0 0 / 0.07), -32px 0 72px rgb(0 0 0 / 0.1);
 }
 
+/* Dark: a crisp inner edge (5% white) defines the panel, so the shadow
+   can stay soft. */
 :root.is-dark {
-  --panel-shadow: -1px 0 0 rgb(255 255 255 / 0.04), -2px 0 4px rgb(0 0 0 / 0.3),
-    -8px 0 20px rgb(0 0 0 / 0.32), -24px 0 56px rgb(0 0 0 / 0.38), -48px 0 120px rgb(0 0 0 / 0.45);
+  --panel-shadow: inset 1px 0 0 rgb(255 255 255 / 0.05), -2px 0 4px rgb(0 0 0 / 0.2),
+    -8px 0 20px rgb(0 0 0 / 0.22), -24px 0 56px rgb(0 0 0 / 0.26), -48px 0 120px rgb(0 0 0 / 0.3);
 }
 
 .log-toggle {
