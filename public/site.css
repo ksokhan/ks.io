@@ -194,9 +194,16 @@ a:hover {
   top: 0;
   left: 0;
   width: 1px;
-  background: var(--me);
   pointer-events: none;
   will-change: transform;
+}
+
+/* The line itself, so blinking doesn't take the "hi" bubble with it. */
+.caret::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--me);
 }
 
 /* Touch screens draw a thicker native caret. */
@@ -210,7 +217,43 @@ a:hover {
   display: none;
 }
 
-.caret.is-idle {
+/* "hi" bubble above my caret, shown briefly when the mouse comes near. */
+.caret-hi {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  padding: 3px 6px 2px;
+  border-radius: 6px;
+  background: var(--me);
+  color: #fff;
+  font: 400 11px/1 'Inconsolata', ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.caret-hi.is-showing {
+  animation: say-hi 1500ms ease both;
+}
+
+@keyframes say-hi {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 3px) scale(0.85);
+  }
+  12%,
+  70% {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%);
+  }
+}
+
+.caret.is-idle::before {
   animation: blink 1.06s steps(1) infinite;
 }
 

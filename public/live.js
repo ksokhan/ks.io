@@ -859,16 +859,15 @@
     const block = visitorBlock()
     if (!block || !doc.contains(block)) return
 
-    // Mix it up: hop up a line, drop down a line (landing mid-sentence or at
-    // the end), or press Enter for a fresh line under theirs. Never a new
-    // line above theirs: that would shift their line under their cursor.
+    // Hop up or down a line at random, landing mid-sentence or at the end.
+    // Only if there's no other line at all, press Enter for a fresh one
+    // under theirs (adding lines shifts the page, so it's a last resort).
     const lines = contentLines()
     const at = lines.indexOf(block)
-    const above = lines[at - 1]
-    const below = lines[at + 1]
-    const roll = Math.random()
-    if (roll < 0.35 && above) return moveTo(spotIn(above), { glide: true })
-    if (roll < 0.7 && below) return moveTo(spotIn(below), { glide: true })
+    const options = [lines[at - 1], lines[at + 1]].filter(Boolean)
+    if (options.length) {
+      return moveTo(spotIn(options[Math.floor(Math.random() * options.length)]), { glide: true })
+    }
 
     const previous = tempLine
     tempLine = null
@@ -900,6 +899,30 @@
     if (!visible.length) return
     moveTo(spotIn(visible[Math.floor(Math.random() * visible.length)]), { glide: true })
   }
+
+  // Say hi when the mouse comes near my caret: a tiny bubble above it that
+  // pops in and fades out. The caret itself ignores the pointer (so it never
+  // blocks clicks), so nearness is measured instead.
+  const hi = document.createElement('span')
+  hi.className = 'caret-hi'
+  hi.textContent = 'hi'
+  caret.append(hi)
+  let near = false
+  addEventListener(
+    'mousemove',
+    (e) => {
+      if (caret.hidden) return
+      const r = caret.getBoundingClientRect()
+      const isNear = Math.abs(e.clientX - r.left) < 10 && e.clientY > r.top - 22 && e.clientY < r.bottom + 4
+      if (isNear && !near) {
+        hi.classList.remove('is-showing')
+        void hi.offsetWidth // restart the animation
+        hi.classList.add('is-showing')
+      }
+      near = isNear
+    },
+    { passive: true }
+  )
 
   let scrollTimer = 0
   addEventListener(
