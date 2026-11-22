@@ -205,6 +205,11 @@ a:hover {
   text-decoration-color: var(--text);
 }
 
+/* Links go somewhere, so they get the pointer even inside the editable page. */
+.doc a {
+  cursor: pointer;
+}
+
 /* --- Live typing -------------------------------------------------------- */
 
 /* Hide the document until the script has prepared the intro, so the full
@@ -264,26 +269,34 @@ a:hover {
   letter-spacing: -0.01em;
   opacity: 0;
   transform: translateX(-50%);
+  transform-origin: 50% 100%;
   pointer-events: none;
 }
 
 .caret-hi.is-showing {
-  animation: say-hi 1500ms ease both;
+  animation: say-hi 1000ms both;
 }
 
+/* Quick spring in from the caret (ease-out), hold, quicker exit (ease-in),
+   scaling from the bottom so it stays anchored to the caret. */
 @keyframes say-hi {
   0% {
     opacity: 0;
-    transform: translate(-50%, 3px) scale(0.85);
+    transform: translateX(-50%) translateY(4px) scale(0.85);
+    animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
-  12%,
-  70% {
+  15% {
     opacity: 1;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  86% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
   }
   100% {
     opacity: 0;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(2px) scale(0.9);
   }
 }
 
