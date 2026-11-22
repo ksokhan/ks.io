@@ -21,6 +21,8 @@
   --rule: #4a4743;
   --me: #7fa8f5; /* my caret; the visitor's is the browser default */
   --label-col: 200px;
+  /* Filled buttons: the page colour, nudged 10% towards the text colour. */
+  --fill: color-mix(in srgb, var(--text) 10%, var(--bg));
   /* One line: 1.6x the body size. Every line on the page uses it. */
   --line: 38.4px;
   color-scheme: dark light;
@@ -141,9 +143,41 @@ section > .items:first-child {
   margin-top: var(--line);
 }
 
-/* "← ks.io" on subpages: its own row in the label column. */
+/* Back button on subpages: a round filled button in the label column,
+   right-aligned towards the text, which shares its row. */
+.is-top {
+  align-items: start;
+}
+
+.back-cell {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 32px;
+}
+
 .back {
-  margin-bottom: 72px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 1px; /* centre on the first 38.4px line */
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.back:hover,
+.back:focus-visible {
+  background: color-mix(in srgb, var(--text) 16%, var(--bg));
+  outline: none;
+}
+
+.back svg {
+  width: 18px;
+  height: 18px;
+  margin-left: -2px; /* optical centre for the chevron */
 }
 
 /* Each section opens with a lead in the main colour; everything after is muted. */
@@ -225,9 +259,9 @@ a:hover {
   padding: 3px 6px 2px;
   border-radius: 6px;
   background: var(--me);
-  color: #fff;
-  font: 400 11px/1 'Inconsolata', ui-monospace, monospace;
-  letter-spacing: 0.04em;
+  color: #111;
+  font: 400 12px/1 'Public Sans', system-ui, sans-serif;
+  letter-spacing: -0.01em;
   opacity: 0;
   transform: translateX(-50%);
   pointer-events: none;
@@ -270,24 +304,23 @@ a:hover {
 
 .reset {
   position: fixed;
-  top: 24px;
+  top: 22px;
   right: 24px;
-  padding: 8px 12px;
-  border: 1px solid var(--rule);
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
   border-radius: 999px;
-  background: var(--bg);
-  color: var(--muted);
-  font: 400 13px/1 'Inconsolata', ui-monospace, monospace;
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
+  background: var(--fill);
+  color: var(--text);
+  font: 400 15px/36px 'Public Sans', system-ui, sans-serif;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease;
+  transition: background-color 150ms ease;
 }
 
 .reset:hover,
 .reset:focus-visible {
-  color: var(--text);
-  border-color: var(--text);
+  background: color-mix(in srgb, var(--text) 16%, var(--bg));
   outline: none;
 }
 
@@ -406,8 +439,9 @@ a:hover {
     margin-bottom: 0;
   }
 
-  .back {
-    margin-bottom: 48px;
+  .back-cell {
+    justify-content: flex-start;
+    padding: 0 0 16px;
   }
 
   section + section {

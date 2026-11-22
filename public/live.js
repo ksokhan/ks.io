@@ -764,7 +764,7 @@
   const reset = document.createElement('button')
   reset.type = 'button'
   reset.className = 'reset'
-  reset.textContent = 'reset'
+  reset.textContent = 'Reset'
   reset.hidden = true
   document.body.append(reset)
 
