@@ -317,15 +317,15 @@ a:hover {
 
 .reset {
   position: fixed;
-  top: 22px;
+  top: 24px;
   right: 24px;
-  height: 36px;
-  padding: 0 16px;
+  height: 32px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: var(--fill);
   color: var(--text);
-  font: 400 15px/36px 'Public Sans', system-ui, sans-serif;
+  font: 400 14px/32px 'Public Sans', system-ui, sans-serif;
   letter-spacing: -0.01em;
   cursor: pointer;
   transition: background-color 150ms ease;

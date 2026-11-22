@@ -905,7 +905,7 @@
   // blocks clicks), so nearness is measured instead.
   const hi = document.createElement('span')
   hi.className = 'caret-hi'
-  hi.textContent = 'hi'
+  hi.textContent = 'hi!'
   caret.append(hi)
   let near = false
   addEventListener(
