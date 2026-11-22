@@ -13,6 +13,9 @@
   const WPM_START = 216
   const WPM_END = 690
   const RAMP_CHARS = 40
+  // With a recording in public/recording.js, the header replays it instead;
+  // PLAYBACK_RATE speeds it up (>1) or slows it down (<1), keeping the rhythm.
+  const PLAYBACK_RATE = 1
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
   const REACT_COOLDOWN_MS = 5000
@@ -452,6 +455,18 @@
     doc.classList.add('is-ready')
     moveTo(rangeIn(jobs[0].n, 0))
 
+    if (Array.isArray(window.HEADER_TYPING) && window.HEADER_TYPING.length) {
+      queue.push(replayStep(jobs, window.HEADER_TYPING, header.querySelector('.label')))
+      queue.push({
+        async run() {
+          finishIntro()
+          return true
+        },
+      })
+      loop()
+      return
+    }
+
     const typoUsed = new Set()
     // The opening line goes at WPM_START; the speed-up starts right after it.
     const openingChars = jobs[0].text.length
@@ -486,6 +501,74 @@
       },
     })
     loop()
+  }
+
+  // Replay a recording of me typing the header ([ms, key] pairs; see
+  // /record-typing.html). Keys that match the next character reveal it;
+  // anything else shows as a typo until backspaced; Enter goes to the next
+  // line. Whatever the recording leaves unfinished is revealed at the end.
+  const sameChar = (a, b) => a === b || (a === "'" && b === '’') || (a === '"' && (b === '“' || b === '”'))
+
+  function replayStep(jobs, recording, label) {
+    return {
+      async run(gen) {
+        let j = 0
+        let k = 0 // characters of this line revealed
+        let job = jobs[0]
+        let range = rangeIn(job.n, 0)
+        moveTo(range)
+        const reveal = (to) => {
+          k = to
+          range.setStart(job.n, k)
+          range.collapse(true)
+          job.hidden.setStart(job.n, k)
+          if (job.hidden.collapsed) untypedHighlight.delete(job.hidden)
+          else untypedHighlight.add(job.hidden)
+        }
+        for (const [ms, key] of recording) {
+          if (gen !== generation) return true
+          await keyBeat(ms / PLAYBACK_RATE)
+          if (gen !== generation) return true
+          await calm()
+          setIdle(false)
+          if (key === '\n') {
+            if (typoExtras) continue // Enter mid-typo: ignore it
+            job = jobs[++j]
+            if (!job) break
+            k = 0
+            range = rangeIn(job.n, 0)
+            moveTo(range)
+            continue
+          }
+          if (key === '\b') {
+            if (typoExtras) {
+              backspaceAt(range)
+              typoExtras--
+              job.hidden.setStart(job.n, range.startOffset)
+            } else if (k > 0) reveal(k - 1)
+          } else if (!typoExtras && k < job.text.length && sameChar(key, job.text[k])) {
+            reveal(k + 1)
+            typed++
+          } else {
+            insertAt(range, key)
+            typoExtras++
+            job.hidden.setStart(job.n, range.startOffset)
+          }
+          if (label && j === 0 && k >= job.text.length / 2) label.classList.remove('is-hidden')
+          place()
+        }
+        // Tidy up anything the recording didn't finish.
+        if (typoExtras && range.startOffset >= typoExtras) {
+          range.startContainer.deleteData(range.startOffset - typoExtras, typoExtras)
+        }
+        typoExtras = 0
+        for (const { hidden } of jobs) untypedHighlight.delete(hidden)
+        if (label) label.classList.remove('is-hidden')
+        moveTo(restingPlace())
+        setIdle(true)
+        return true
+      },
+    }
   }
 
   // Fade everything still hidden in, one line after another, top to bottom.

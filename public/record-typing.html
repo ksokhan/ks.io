@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Record header typing · ks.io</title>
+    <link rel="stylesheet" href="/site.css" />
+    <style>
+      .rec {
+        max-width: 900px;
+        padding: 96px 48px 96px 120px;
+      }
+      .rec p {
+        margin: 0 0 var(--line);
+      }
+      .rec textarea,
+      .rec .play {
+        display: block;
+        width: 100%;
+        min-height: calc(var(--line) * 3);
+        margin: 0 0 24px;
+        padding: 12px 16px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: none;
+        color: var(--text);
+        font: inherit;
+        white-space: pre-wrap;
+        resize: vertical;
+      }
+      .rec textarea:focus {
+        outline: none;
+        border-color: var(--muted);
+      }
+      .rec button {
+        margin-right: 8px;
+        padding: 8px 14px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: none;
+        color: var(--text);
+        font: 400 13px/1 'Inconsolata', ui-monospace, monospace;
+        cursor: pointer;
+      }
+      .rec button:hover {
+        border-color: var(--text);
+      }
+      .rec .out {
+        width: 100%;
+        min-height: 120px;
+        margin-top: 24px;
+        font: 400 13px/1.5 'Inconsolata', ui-monospace, monospace;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="rec">
+      <p class="label">record header typing</p>
+      <p>
+        Type the header below, naturally, typos and all. Press Enter between the two lines.
+        <span class="muted">Timing starts at your first key. A plain ' works for ’.</span>
+      </p>
+      <p class="muted">Hey, I’m Konstantin.<br />A designer, developer and general tinkerer.</p>
+
+      <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" autofocus></textarea>
+      <div>
+        <button id="play" type="button">play back</button>
+        <button id="copy" type="button">copy recording</button>
+        <button id="clear" type="button">start over</button>
+        <span id="stats" class="label"></span>
+      </div>
+      <div id="playback" class="play" aria-live="off"></div>
+      <textarea id="out" class="out" readonly placeholder="Your recording appears here."></textarea>
+    </main>
+
+    <script>
+      // Records each key as [ms since the previous key, key], where key is a
+      // character, "\b" (Backspace) or "\n" (Enter). Paste the result into
+      // public/recording.js to have the homepage replay it.
+      const input = document.getElementById('input')
+      const out = document.getElementById('out')
+      const stats = document.getElementById('stats')
+      const playback = document.getElementById('playback')
+      let keys = []
+      let last = 0
+
+      input.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return
+        let key = null
+        if (e.key === 'Backspace') key = '\b'
+        else if (e.key === 'Enter') key = '\n'
+        else if (e.key.length === 1) key = e.key
+        if (key === null) return
+        const now = performance.now()
+        keys.push([keys.length ? Math.round(now - last) : 0, key])
+        last = now
+        render()
+      })
+
+      function render() {
+        const ms = keys.reduce((t, [d]) => t + d, 0)
+        const chars = keys.filter(([, k]) => k !== '\b').length
+        stats.textContent = keys.length
+          ? `${keys.length} keys · ${(ms / 1000).toFixed(1)}s · ${Math.round(chars / 5 / (ms / 60000 || 1))} wpm`
+          : ''
+        out.value = keys.length ? `window.HEADER_TYPING = ${JSON.stringify(keys)}\n` : ''
+      }
+
+      document.getElementById('clear').addEventListener('click', () => {
+        keys = []
+        input.value = ''
+        playback.textContent = ''
+        render()
+        input.focus()
+      })
+
+      document.getElementById('copy').addEventListener('click', async () => {
+        if (!out.value) return
+        try {
+          await navigator.clipboard.writeText(out.value)
+        } catch (e) {
+          out.select() // clipboard blocked: select it for a manual copy
+        }
+      })
+
+      let playing = 0
+      document.getElementById('play').addEventListener('click', async () => {
+        const run = ++playing
+        let text = ''
+        playback.textContent = ''
+        for (const [ms, key] of keys) {
+          await new Promise((r) => setTimeout(r, ms))
+          if (run !== playing) return
+          text = key === '\b' ? text.slice(0, -1) : text + key
+          playback.textContent = text
+        }
+      })
+    </script>
+  </body>
+</html>
