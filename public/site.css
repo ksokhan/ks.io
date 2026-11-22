@@ -19,8 +19,7 @@
   --text: #efe9e0;
   --muted: #8a857b;
   --rule: #4a4743;
-  --me: #5b8def; /* my caret */
-  --you: #ff3d8b; /* the visitor's (native) caret */
+  --me: #7fa8f5; /* my caret; the visitor's is the browser default */
   --label-col: 200px;
   /* One line: 1.6x the body size. Every line on the page uses it. */
   --line: 38.4px;
@@ -35,8 +34,7 @@
     --text: #17181a;
     --muted: #6f7075;
     --rule: #d3d4d7;
-    --me: #2f6fde;
-  --you: #e0156b;
+    --me: #4d86ea;
     color-scheme: light;
   }
 }
@@ -46,8 +44,7 @@
   --text: #17181a;
   --muted: #6f7075;
   --rule: #d3d4d7;
-  --me: #2f6fde;
-  --you: #e0156b;
+  --me: #4d86ea;
   color-scheme: light;
 }
 
@@ -83,7 +80,6 @@ body {
   max-width: calc(900px + 120px);
   padding: 140px 48px 140px 120px;
   outline: none;
-  caret-color: var(--you);
 }
 
 section {

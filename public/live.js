@@ -16,6 +16,7 @@
   // With a recording in public/recording.js, the header replays it instead;
   // PLAYBACK_RATE speeds it up (>1) or slows it down (<1), keeping the rhythm.
   const PLAYBACK_RATE = 1
+  const REPLY_WPM = 180 // my replies to visitors' edits: slower, steady
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
   const REACT_COOLDOWN_MS = 5000
@@ -274,7 +275,8 @@
   // exactly as it will in the end, so words never jump.
   let typoExtras = 0 // typo characters on screen, not yet backspaced
   let untypedHighlight = null // the Highlight painting untyped text invisible
-  function typeStep(range, tokens, { interruptible = true, hidden = null } = {}) {
+  // wpm: a fixed speed for this text (my replies) instead of the intro ramp.
+  function typeStep(range, tokens, { interruptible = true, hidden = null, wpm = 0 } = {}) {
     let text = typeof tokens === 'string' ? [...tokens] : tokens
     return {
       async run(gen) {
@@ -324,7 +326,8 @@
             typed++
           }
           place()
-          await keyBeat(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
+          if (wpm) await keyBeat((60000 / (wpm * 5)) * (0.85 + Math.random() * 0.3))
+          else await keyBeat(token === BACKSPACE ? msPerChar() * 0.8 : charDelay(token, text[0]))
         }
         return true
       },
@@ -718,8 +721,13 @@
       async run(gen) {
         await sleep(250)
         if (gen !== generation) return
+        // Glide over to where the reply goes, a short beat, then type.
         const aside = makeAside(block)
-        await typeStep(rangeAtEnd(aside), line, { interruptible: false }).run(gen)
+        const spot = rangeAtEnd(aside)
+        moveTo(spot, { glide: true })
+        await sleep(280 + 150)
+        if (gen !== generation) return
+        await typeStep(spot, line, { interruptible: false, wpm: REPLY_WPM }).run(gen)
         saveDoc()
         await sleep(600)
       },
