@@ -93,7 +93,7 @@ section {
 }
 
 section + section {
-  margin-top: 62px; /* the line height × φ */;
+  margin-top: 62px; /* the line height × φ */
 }
 
 .label {
