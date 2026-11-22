@@ -186,6 +186,17 @@ section > .items:first-child {
   color: var(--muted);
 }
 
+/* My note to visitors: its own little section (an empty line either side)
+   in my caret's colour, so it reads as mine. */
+.aside[data-note] {
+  margin-block: var(--line);
+  color: var(--me);
+}
+
+.aside[data-note]:last-child {
+  margin-bottom: 0;
+}
+
 /* A cheeky line typed somewhere that isn't inside a section (e.g. after a wipe). */
 .doc > .aside {
   margin: 0;
