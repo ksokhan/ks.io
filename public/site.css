@@ -458,7 +458,7 @@ a:hover {
   bottom: 0;
   z-index: 60;
   width: min(400px, 100vw);
-  padding: 24px 24px 48px;
+  padding: 24px 28px 48px;
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--bg);
@@ -514,15 +514,19 @@ a:hover {
 }
 
 .log-list {
-  margin: 0 -12px;
+  margin: 0 -16px;
   padding: 0;
   list-style: none;
+}
+
+.log-list > li + li {
+  margin-top: 4px;
 }
 
 .log-item {
   display: block;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 16px;
   border: 0;
   border-radius: 12px;
   background: none;
@@ -543,19 +547,20 @@ a:hover {
 .log-date {
   display: block;
   color: var(--muted);
+  margin-bottom: 8px;
   font: 400 12px/1.6 'Inconsolata', ui-monospace, monospace;
   letter-spacing: 0.04em;
 }
 
 .log-caption {
   display: block;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.45;
   letter-spacing: -0.01em;
 }
 
 .log-empty {
-  padding: 0 12px;
+  padding: 0 16px;
   color: var(--muted);
   font-size: 15px;
 }
