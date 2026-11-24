@@ -22,8 +22,8 @@
   --me: #5b8def; /* my caret */
   --you: #ff3d8b; /* the visitor's (native) caret */
   --label-col: 200px;
-  /* One line: 1.5x the body size. Every line on the page uses it. */
-  --line: 36px;
+  /* One line: 1.6x the body size. Every line on the page uses it. */
+  --line: 38.4px;
   color-scheme: dark light;
 }
 
@@ -70,7 +70,7 @@ html {
 body {
   margin: 0;
   font: 300 24px/var(--line) 'Public Sans', system-ui, sans-serif;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.018em;
   text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
 }
@@ -93,13 +93,13 @@ section {
 }
 
 section + section {
-  margin-top: 46px;
+  margin-top: 62px; /* the line height × φ */;
 }
 
 .label {
   margin: 0;
   font: 400 13px/var(--line) 'Inconsolata', ui-monospace, monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: lowercase;
   color: var(--muted);
 }
@@ -234,7 +234,7 @@ a:hover {
   background: var(--bg);
   color: var(--muted);
   font: 400 13px/1 'Inconsolata', ui-monospace, monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: lowercase;
   cursor: pointer;
   transition: color 120ms ease, border-color 120ms ease;
@@ -347,7 +347,7 @@ a:hover {
   }
 
   :root {
-    --line: 30px;
+    --line: 32px;
   }
 
   .doc {

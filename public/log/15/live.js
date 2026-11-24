@@ -13,9 +13,12 @@
   const WPM_START = 216
   const WPM_END = 690
   const RAMP_CHARS = 40
-  // With a recording in public/recording.js, the header replays it instead;
-  // PLAYBACK_RATE speeds it up (>1) or slows it down (<1), keeping the rhythm.
-  const PLAYBACK_RATE = 1
+  // With a recording in public/recording.js, the header replays it instead.
+  // PLAYBACK_RATE scales it (>1 is faster) and the WPM ramp above applies on
+  // top, so the first line plays at PLAYBACK_RATE and later keys speed up by
+  // WPM_END / WPM_START. 4 matches the built-in typing: about 2.7s in all.
+  const PLAYBACK_RATE = 4
+  const TYPO_NOTICE_MS = 180 // at least this long to "notice" a typo before backspacing
   const REPLY_WPM = 180 // my replies to visitors' edits: slower, steady
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
@@ -432,8 +435,8 @@
     introRunning = true
 
     // Only the first section is typed. Its label isn't typed either: it fades
-    // in once the first line is half typed. Everything after it is hidden
-    // until the typing is done, then fades in line by line.
+    // in once the first line is half typed. Everything after it is hidden,
+    // then fades in line by line as the second line starts typing.
     const header = sectionOf(nodes[0])
     veiled = [...doc.querySelectorAll('.label, .items > *')].filter((el) => !header.contains(el) || el.classList.contains('label'))
     veiled.forEach((el) => el.classList.add('is-hidden'))
@@ -466,6 +469,7 @@
     moveTo(rangeIn(jobs[0].n, 0))
 
     if (Array.isArray(window.HEADER_TYPING) && window.HEADER_TYPING.length) {
+      rampStart = jobs[0].text.length // speed up after the opening line
       queue.push(replayStep(jobs, window.HEADER_TYPING, header.querySelector('.label')))
       queue.push({
         async run() {
@@ -495,6 +499,8 @@
         const half = Math.ceil(tokens.length / 2)
         tokens.splice(half, 0, () => label.classList.remove('is-hidden'))
       }
+      // The rest of the page starts fading in as the second line starts.
+      if (i === 1) tokens.unshift(() => revealRest())
       queue.push(typeStep(rangeIn(n, 0), tokens, { hidden }))
 
       const next = jobs[i + 1]
@@ -535,9 +541,16 @@
           if (job.hidden.collapsed) untypedHighlight.delete(job.hidden)
           else untypedHighlight.add(job.hidden)
         }
+        let previous = null
         for (const [ms, key] of recording) {
           if (gen !== generation) return true
-          await keyBeat(ms / PLAYBACK_RATE)
+          // The same speed-up as the built-in typing, applied to my rhythm.
+          const ramped = msPerChar() / (60000 / (WPM_START * 5))
+          let gap = (ms / PLAYBACK_RATE) * ramped
+          // The beat before correcting a typo isn't sped up, so it reads.
+          if (key === '\b' && previous !== '\b') gap = Math.max(ms / PLAYBACK_RATE, TYPO_NOTICE_MS)
+          previous = key
+          await keyBeat(gap)
           if (gen !== generation) return true
           await calm()
           setIdle(false)
@@ -548,6 +561,7 @@
             k = 0
             range = rangeIn(job.n, 0)
             moveTo(range)
+            if (j === 1) revealRest() // the rest fades in as the second line starts
             continue
           }
           if (key === '\b') {

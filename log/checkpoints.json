@@ -40,10 +40,6 @@
     "caption": "Two people on one page. I tried a name tag, a pin head and dots, and ended up with two plain carets in different colours."
   },
   {
-    "commit": "39182da",
-    "caption": "Recorded myself typing the header so it has my real rhythm."
-  },
-  {
     "commit": "3436bd1",
     "caption": "Tighter letter spacing, a 1.6 line height, and 62px between sections: the line height × φ."
   },
@@ -58,5 +54,9 @@
   {
     "commit": "35ecabb",
     "caption": "Product-style buttons, a proper back button, and my note in my colour."
+  },
+  {
+    "commit": "fe0aac5",
+    "caption": "Recorded myself typing the header so it has my real rhythm, typo and all. The rest of the page now builds in while I'm still typing."
   }
 ]

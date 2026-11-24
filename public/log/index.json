@@ -71,37 +71,37 @@
   },
   {
     "id": "11",
-    "commit": "39182da",
+    "commit": "3436bd1",
     "date": "2026-11-22",
-    "caption": "Recorded myself typing the header so it has my real rhythm.",
+    "caption": "Tighter letter spacing, a 1.6 line height, and 62px between sections: the line height × φ.",
     "path": "/log/11/"
   },
   {
     "id": "12",
-    "commit": "3436bd1",
+    "commit": "4e1c5b5",
     "date": "2026-11-22",
-    "caption": "Tighter letter spacing, a 1.6 line height, and 62px between sections: the line height × φ.",
+    "caption": "Canned replies to every edit felt like a dim chatbot. Now there's one honest note, and after that my caret just looks.",
     "path": "/log/12/"
   },
   {
     "id": "13",
-    "commit": "4e1c5b5",
+    "commit": "1831c9b",
     "date": "2026-11-22",
-    "caption": "Canned replies to every edit felt like a dim chatbot. Now there's one honest note, and after that my caret just looks.",
+    "caption": "My caret steps aside when you come close, follows you down the page, and says hi! when you hover over it.",
     "path": "/log/13/"
   },
   {
     "id": "14",
-    "commit": "1831c9b",
+    "commit": "35ecabb",
     "date": "2026-11-22",
-    "caption": "My caret steps aside when you come close, follows you down the page, and says hi! when you hover over it.",
+    "caption": "Product-style buttons, a proper back button, and my note in my colour.",
     "path": "/log/14/"
   },
   {
     "id": "15",
-    "commit": "35ecabb",
-    "date": "2026-11-22",
-    "caption": "Product-style buttons, a proper back button, and my note in my colour.",
+    "commit": "fe0aac5",
+    "date": "2026-11-24",
+    "caption": "Recorded myself typing the header so it has my real rhythm, typo and all. The rest of the page now builds in while I'm still typing.",
     "path": "/log/15/"
   }
 ]
