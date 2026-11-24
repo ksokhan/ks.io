@@ -435,8 +435,8 @@
     introRunning = true
 
     // Only the first section is typed. Its label isn't typed either: it fades
-    // in once the first line is half typed. Everything after it is hidden
-    // until the typing is done, then fades in line by line.
+    // in once the first line is half typed. Everything after it is hidden,
+    // then fades in line by line as the second line starts typing.
     const header = sectionOf(nodes[0])
     veiled = [...doc.querySelectorAll('.label, .items > *')].filter((el) => !header.contains(el) || el.classList.contains('label'))
     veiled.forEach((el) => el.classList.add('is-hidden'))
@@ -499,6 +499,8 @@
         const half = Math.ceil(tokens.length / 2)
         tokens.splice(half, 0, () => label.classList.remove('is-hidden'))
       }
+      // The rest of the page starts fading in as the second line starts.
+      if (i === 1) tokens.unshift(() => revealRest())
       queue.push(typeStep(rangeIn(n, 0), tokens, { hidden }))
 
       const next = jobs[i + 1]
@@ -559,6 +561,7 @@
             k = 0
             range = rangeIn(job.n, 0)
             moveTo(range)
+            if (j === 1) revealRest() // the rest fades in as the second line starts
             continue
           }
           if (key === '\b') {

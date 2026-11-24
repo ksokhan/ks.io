@@ -6,7 +6,8 @@ Plain static site, no build, no dependencies. Netlify publishes `public/` (see `
 - Test: no automated tests. Check in a browser: intro typing, editing the page
   (first edit gets the note, later ones a look), reset button, link clicks, /beliefs, light/dark toggle, mobile width.
 - Copy changes: edit the HTML. On pages with `data-typeout` on `<main>` (homepage only)
-  the first section is typed out on load and the rest fades in line by line (Esc or a
+  the first section is typed out on load and the rest fades in line by line as its second
+  line starts (Esc or a
   touch tap skips, the top-right icon replays); `data-typo="Kon|ts"` makes the caret type "ts" by mistake
   after "Kon" and fix it. Speed
   (`WPM_START`, `WPM_END`, `RAMP_CHARS`) and the one-time note to visitors (`NOTE`)
