@@ -1,0 +1,5 @@
+# Plain static site: no build step. This overrides any build command or
+# publish directory set in the Netlify UI (it used to run Parcel).
+[build]
+  publish = "public"
+  command = ""

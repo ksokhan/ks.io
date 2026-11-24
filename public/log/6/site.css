@@ -1,0 +1,305 @@
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/log/6/fonts/public-sans-latin-300-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/log/6/fonts/inconsolata-latin-400-normal.woff2') format('woff2');
+}
+
+:root {
+  --bg: #161616;
+  --text: #efe9e0;
+  --muted: #8a857b;
+  --rule: #4a4743;
+  --label-col: 200px;
+  /* One line: 1.5x the body size. Every line on the page uses it. */
+  --line: 36px;
+  color-scheme: dark light;
+}
+
+/* Light follows the OS unless the visitor picked a theme with the toggle
+   (stored as data-theme on <html>). Colours only; content is the same. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #fefefe;
+    --text: #17181a;
+    --muted: #6f7075;
+    --rule: #d3d4d7;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --bg: #fefefe;
+  --text: #17181a;
+  --muted: #6f7075;
+  --rule: #d3d4d7;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font: 300 24px/var(--line) 'Public Sans', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--rule);
+}
+
+.doc {
+  max-width: calc(900px + 120px);
+  padding: 140px 48px 140px 120px;
+  outline: none;
+  caret-color: var(--text);
+}
+
+section {
+  display: grid;
+  grid-template-columns: var(--label-col) minmax(0, 1fr);
+  align-items: baseline;
+}
+
+section + section {
+  margin-top: 88px;
+}
+
+.label {
+  margin: 0;
+  font: 400 13px/var(--line) 'Inconsolata', ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items > * + * {
+  margin-top: 0;
+}
+
+.items p {
+  margin: 0;
+}
+
+/* Sections without a label still sit in the content column. */
+section > .items:first-child {
+  grid-column: 2;
+}
+
+/* Paragraph lists (the /beliefs page): one empty line between paragraphs. */
+.items.is-spaced > * + * {
+  margin-top: var(--line);
+}
+
+/* "← ks.io" on subpages: its own row in the label column. */
+.back {
+  margin-bottom: 72px;
+}
+
+/* Each section opens with a lead in the main colour; everything after is muted. */
+.muted,
+.aside {
+  color: var(--muted);
+}
+
+/* A cheeky line typed somewhere that isn't inside a section (e.g. after a wipe). */
+.doc > .aside {
+  margin: 0;
+  padding-left: var(--label-col);
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color 120ms ease;
+}
+
+a:hover {
+  text-decoration-color: var(--text);
+}
+
+/* --- Live typing -------------------------------------------------------- */
+
+/* Hide the document until the script has prepared the intro, so the full
+   page doesn't flash before the typing starts. Falls back to visible after
+   3s in case the script never runs. */
+.js .doc:not(.is-ready) {
+  visibility: hidden;
+  animation: reveal 0s 3s forwards;
+}
+
+@keyframes reveal {
+  to {
+    visibility: visible;
+  }
+}
+
+/* My cursor: a custom caret so it can sit alongside the visitor's own. */
+.me {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  background: var(--text);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.me[hidden] {
+  display: none;
+}
+
+.me.is-idle {
+  animation: blink 1.06s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.reset {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font: 400 13px/1 'Inconsolata', ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.reset:hover,
+.reset:focus-visible {
+  color: var(--text);
+  border-color: var(--text);
+  outline: none;
+}
+
+.reset[hidden] {
+  display: none;
+}
+
+/* Theme toggle: soft until you reach for it. */
+.theme {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 200ms ease, color 200ms ease;
+}
+
+.theme:hover,
+.theme:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  outline: none;
+}
+
+.theme svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Show the icon for the theme you'd switch to. */
+.theme .sun {
+  display: none;
+}
+
+:root.is-dark .theme .sun {
+  display: block;
+}
+
+:root.is-dark .theme .moon {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  body {
+    font-size: 20px;
+  }
+
+  :root {
+    --line: 30px;
+  }
+
+  .doc {
+    padding: 96px 24px 96px;
+  }
+
+  section {
+    display: block;
+  }
+
+  .label {
+    margin-bottom: 0;
+  }
+
+  .back {
+    margin-bottom: 48px;
+  }
+
+  section + section {
+    margin-top: 64px;
+  }
+
+  .doc > .aside {
+    padding-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me.is-idle {
+    animation: none;
+  }
+}
