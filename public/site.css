@@ -519,6 +519,7 @@ a:hover {
   --gap: 12px;
   --dot: 7px;
   --dot-y: 24px; /* centre of the date line inside an item */
+  --dot-gap: 4px; /* space between a dot and the line above and below it */
   margin: 0;
   padding: 0;
   list-style: none;
@@ -542,7 +543,7 @@ a:hover {
   box-sizing: border-box;
   width: var(--dot);
   height: var(--dot);
-  border: 1.5px solid color-mix(in srgb, var(--text) 28%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--text) 28%, var(--bg));
   border-radius: 50%;
   background: var(--bg);
   transition: background-color 150ms ease, border-color 150ms ease;
@@ -551,8 +552,8 @@ a:hover {
 .log-list > li:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: var(--dot-y);
-  bottom: calc(-1 * (var(--gap) + var(--dot-y)));
+  top: calc(var(--dot-y) + var(--dot) / 2 + var(--dot-gap));
+  bottom: calc(-1 * (var(--gap) + var(--dot-y) - var(--dot) / 2 - var(--dot-gap)));
   left: calc(var(--dot) / 2 - 0.5px);
   width: 1px;
   background: color-mix(in srgb, var(--text) 12%, var(--bg));
@@ -563,8 +564,8 @@ a:hover {
 }
 
 .log-list > li:has([aria-current='true'])::before {
-  border-color: var(--text);
-  background: var(--text);
+  border-color: var(--me);
+  background: var(--me);
 }
 
 .log-item {
@@ -581,10 +582,11 @@ a:hover {
   transition: background-color 150ms ease;
 }
 
+/* A light tint, softer than the button fill, for hover and the one shown. */
 .log-item:hover,
 .log-item:focus-visible,
 .log-item[aria-current='true'] {
-  background: var(--fill);
+  background: color-mix(in srgb, var(--text) 5%, var(--bg));
   outline: none;
 }
 
