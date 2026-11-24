@@ -80,19 +80,26 @@
 
   function render() {
     if (!entries.length) return
-    const item = (id, date, caption) => `
+    const item = (id, label, caption, date = '') => `
       <li>
-        <button type="button" class="log-item" data-id="${id}" aria-current="${current === id}">
-          <span class="log-date">${date}</span>
+        <button type="button" class="log-item" data-id="${id}" aria-current="${current === id}"${date ? ` title="${date}"` : ''}>
+          <span class="log-date">${label}</span>
           <span class="log-caption">${caption}</span>
         </button>
       </li>`
     list.innerHTML =
       item('live', 'Now', 'The live site, as it is today.') +
-      entries.map((e) => item(e.id, formatDate(e.date), escapeHtml(e.caption))).join('')
+      entries.map((e) => item(e.id, roundLabel(e.id), escapeHtml(e.caption), formatDate(e.date))).join('')
     list.querySelectorAll('.log-item').forEach((b) => {
       b.setAttribute('aria-current', String((current || 'live') === b.dataset.id))
     })
+  }
+
+  // The first checkpoint is the site before this redesign; the rest are
+  // rounds of exploration, numbered from 1.
+  function roundLabel(id) {
+    const n = Number(id) - 1
+    return n === 0 ? 'Before' : `Round ${n}`
   }
 
   function formatDate(iso) {
