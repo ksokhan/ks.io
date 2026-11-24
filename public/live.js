@@ -18,6 +18,7 @@
   // top, so the first line plays at PLAYBACK_RATE and later keys speed up by
   // WPM_END / WPM_START. 4 matches the built-in typing: about 2.7s in all.
   const PLAYBACK_RATE = 4
+  const TYPO_NOTICE_MS = 180 // at least this long to "notice" a typo before backspacing
   const REPLY_WPM = 180 // my replies to visitors' edits: slower, steady
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
@@ -538,11 +539,16 @@
           if (job.hidden.collapsed) untypedHighlight.delete(job.hidden)
           else untypedHighlight.add(job.hidden)
         }
+        let previous = null
         for (const [ms, key] of recording) {
           if (gen !== generation) return true
           // The same speed-up as the built-in typing, applied to my rhythm.
           const ramped = msPerChar() / (60000 / (WPM_START * 5))
-          await keyBeat((ms / PLAYBACK_RATE) * ramped)
+          let gap = (ms / PLAYBACK_RATE) * ramped
+          // The beat before correcting a typo isn't sped up, so it reads.
+          if (key === '\b' && previous !== '\b') gap = Math.max(ms / PLAYBACK_RATE, TYPO_NOTICE_MS)
+          previous = key
+          await keyBeat(gap)
           if (gen !== generation) return true
           await calm()
           setIdle(false)
