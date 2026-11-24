@@ -12,7 +12,7 @@ Plain static site, no build, no dependencies. Netlify publishes `public/` (see `
   (`WPM_START`, `WPM_END`, `RAMP_CHARS`) and the one-time note to visitors (`NOTE`)
   are at the top of `public/live.js`.
 - Header typing can replay a real recording: type it at `/record-typing.html`, paste the
-  output into `public/recording.js` (`null` = built-in typing; `PLAYBACK_RATE` in live.js).
+  output into `public/recording.js` (`null` = built-in typing; `PLAYBACK_RATE` in live.js, ramped like the built-in typing).
 - State persists per page in localStorage (`ksio:<path>`): the typed-out flag and the
   visitor's edits, tied to a hash of the page's HTML. To see the intro again, clear it
   (`localStorage.clear()`) or change the page's copy.

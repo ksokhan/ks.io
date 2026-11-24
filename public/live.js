@@ -13,9 +13,11 @@
   const WPM_START = 216
   const WPM_END = 690
   const RAMP_CHARS = 40
-  // With a recording in public/recording.js, the header replays it instead;
-  // PLAYBACK_RATE speeds it up (>1) or slows it down (<1), keeping the rhythm.
-  const PLAYBACK_RATE = 1
+  // With a recording in public/recording.js, the header replays it instead.
+  // PLAYBACK_RATE scales it (>1 is faster) and the WPM ramp above applies on
+  // top, so the first line plays at PLAYBACK_RATE and later keys speed up by
+  // WPM_END / WPM_START. 4 matches the built-in typing: about 2.7s in all.
+  const PLAYBACK_RATE = 4
   const REPLY_WPM = 180 // my replies to visitors' edits: slower, steady
   const CALM_MS = 900 // how long a visitor must pause before I move again
   const REACT_DELAY_MS = 1100 // pause after their last edit before I react
@@ -466,6 +468,7 @@
     moveTo(rangeIn(jobs[0].n, 0))
 
     if (Array.isArray(window.HEADER_TYPING) && window.HEADER_TYPING.length) {
+      rampStart = jobs[0].text.length // speed up after the opening line
       queue.push(replayStep(jobs, window.HEADER_TYPING, header.querySelector('.label')))
       queue.push({
         async run() {
@@ -537,7 +540,9 @@
         }
         for (const [ms, key] of recording) {
           if (gen !== generation) return true
-          await keyBeat(ms / PLAYBACK_RATE)
+          // The same speed-up as the built-in typing, applied to my rhythm.
+          const ramped = msPerChar() / (60000 / (WPM_START * 5))
+          await keyBeat((ms / PLAYBACK_RATE) * ramped)
           if (gen !== generation) return true
           await calm()
           setIdle(false)
