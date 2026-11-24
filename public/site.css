@@ -458,7 +458,7 @@ a:hover {
   bottom: 0;
   z-index: 60;
   width: min(400px, 100vw);
-  padding: 24px 28px 48px;
+  padding: 32px 32px 64px;
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--bg);
@@ -507,26 +507,70 @@ a:hover {
 }
 
 .log-blurb {
-  margin: 8px 0 24px;
+  margin: 8px 0 32px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
+/* A timeline: a soft dot per checkpoint, lined up with its date, and a
+   thin line joining them from the first to the last. */
 .log-list {
-  margin: 0 -16px;
+  --gap: 12px;
+  --dot: 7px;
+  --dot-y: 24px; /* centre of the date line inside an item */
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.log-list > li {
+  position: relative;
+  padding-left: 20px;
+}
+
 .log-list > li + li {
-  margin-top: 4px;
+  margin-top: var(--gap);
+}
+
+.log-list > li::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--dot-y) - var(--dot) / 2);
+  left: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: var(--dot);
+  height: var(--dot);
+  border: 1.5px solid color-mix(in srgb, var(--text) 28%, var(--bg));
+  border-radius: 50%;
+  background: var(--bg);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.log-list > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: var(--dot-y);
+  bottom: calc(-1 * (var(--gap) + var(--dot-y)));
+  left: calc(var(--dot) / 2 - 0.5px);
+  width: 1px;
+  background: color-mix(in srgb, var(--text) 12%, var(--bg));
+}
+
+.log-list > li:hover::before {
+  border-color: var(--muted);
+}
+
+.log-list > li:has([aria-current='true'])::before {
+  border-color: var(--text);
+  background: var(--text);
 }
 
 .log-item {
   display: block;
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border: 0;
   border-radius: 12px;
   background: none;
@@ -554,7 +598,7 @@ a:hover {
 
 .log-caption {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
   letter-spacing: -0.01em;
 }
