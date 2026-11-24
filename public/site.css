@@ -513,13 +513,15 @@ a:hover {
   line-height: 1.5;
 }
 
-/* A timeline: a soft dot per checkpoint, lined up with its date, and a
-   thin line joining them from the first to the last. */
+/* A timeline: a soft dot centred on each checkpoint, and a thin line
+   through them that stops just short of every dot. Each item draws the
+   line above and below its own dot, meeting its neighbours halfway across
+   the gap, so it works whatever height an item is. */
 .log-list {
   --gap: 12px;
   --dot: 7px;
-  --dot-y: 24px; /* centre of the date line inside an item */
   --dot-gap: 4px; /* space between a dot and the line above and below it */
+  --rail: color-mix(in srgb, var(--text) 12%, var(--bg));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -534,36 +536,52 @@ a:hover {
   margin-top: var(--gap);
 }
 
-.log-list > li::before {
+.log-list > li::before,
+.log-list > li::after {
   content: '';
   position: absolute;
-  top: calc(var(--dot-y) - var(--dot) / 2);
-  left: 0;
-  z-index: 1;
+  left: calc(var(--dot) / 2 - 0.5px);
+  width: 1px;
+  background: var(--rail);
+}
+
+.log-list > li::before {
+  top: calc(var(--gap) / -2);
+  bottom: calc(50% + var(--dot) / 2 + var(--dot-gap));
+}
+
+.log-list > li::after {
+  top: calc(50% + var(--dot) / 2 + var(--dot-gap));
+  bottom: calc(var(--gap) / -2);
+}
+
+.log-list > li:first-child::before,
+.log-list > li:last-child::after {
+  display: none;
+}
+
+.log-item {
+  position: relative;
+}
+
+.log-item::before {
+  content: '';
+  position: absolute;
+  top: calc(50% - var(--dot) / 2);
+  left: -20px;
   box-sizing: border-box;
   width: var(--dot);
   height: var(--dot);
   border: 1px solid color-mix(in srgb, var(--text) 28%, var(--bg));
   border-radius: 50%;
-  background: var(--bg);
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-.log-list > li:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: calc(var(--dot-y) + var(--dot) / 2 + var(--dot-gap));
-  bottom: calc(-1 * (var(--gap) + var(--dot-y) - var(--dot) / 2 - var(--dot-gap)));
-  left: calc(var(--dot) / 2 - 0.5px);
-  width: 1px;
-  background: color-mix(in srgb, var(--text) 12%, var(--bg));
-}
-
-.log-list > li:hover::before {
+.log-item:hover::before {
   border-color: var(--muted);
 }
 
-.log-list > li:has([aria-current='true'])::before {
+.log-item[aria-current='true']::before {
   border-color: var(--me);
   background: var(--me);
 }
